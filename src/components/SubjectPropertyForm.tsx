@@ -276,60 +276,82 @@ export default function SubjectPropertyForm({
             />
           </Box>
 
-          <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
-            <TextField
-              label="Latitude"
-              type="number"
-              value={manualLat}
-              onChange={(e) => setManualLat(e.target.value)}
-              onBlur={handleManualCoordsChange}
-              size="small"
-              sx={{ flex: 2 }}
-              disabled={!useManualCoords}
-            />
-            <TextField
-              label="Longitude"
-              type="number"
-              value={manualLng}
-              onChange={(e) => setManualLng(e.target.value)}
-              onBlur={handleManualCoordsChange}
-              size="small"
-              sx={{ flex: 2 }}
-              disabled={!useManualCoords}
-            />
-            <Tooltip title="Enable manual coordinate input" arrow>
-              <Box
-                component="label"
-                htmlFor="manual-coords"
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            <Grid size={{ xs: 5 }}>
+              <TextField
+                label="Latitude"
+                type="number"
+                value={manualLat}
+                onChange={(e) => setManualLat(e.target.value)}
+                onBlur={handleManualCoordsChange}
+                size="small"
+                fullWidth
+                disabled={!useManualCoords}
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  ml: 1,
-                  cursor: "pointer",
+                  "& .MuiInputBase-root": {
+                    transition: "opacity 0.2s",
+                  },
                 }}
+                placeholder={useManualCoords ? undefined : "Enable to edit"}
+              />
+            </Grid>
+            <Grid size={{ xs: 5 }}>
+              <TextField
+                label="Longitude"
+                type="number"
+                value={manualLng}
+                onChange={(e) => setManualLng(e.target.value)}
+                onBlur={handleManualCoordsChange}
+                size="small"
+                fullWidth
+                disabled={!useManualCoords}
+                sx={{
+                  "& .MuiInputBase-root": {
+                    transition: "opacity 0.2s",
+                  },
+                }}
+                placeholder={useManualCoords ? undefined : "Enable to edit"}
+              />
+            </Grid>
+            <Grid size={{ xs: 2 }}>
+              <Tooltip
+                title={
+                  useManualCoords
+                    ? "Disable manual coordinate input"
+                    : "Enable manual coordinate input"
+                }
+                arrow
               >
-                <Checkbox
-                  id="manual-coords"
-                  checked={useManualCoords}
-                  onChange={(e) => setUseManualCoords(e.target.checked)}
-                  size="small"
-                  sx={{ p: 0.5 }}
-                />
-                <Typography
-                  variant="body2"
+                <Box
+                  component="label"
+                  htmlFor="manual-coords"
                   sx={{
-                    fontSize: "0.75rem",
-                    userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    height: "100%",
+                    cursor: "pointer",
+                    justifyContent: "center",
+                    opacity: useManualCoords ? 1 : 0.6,
+                    transition: "opacity 0.2s",
+                    "&:hover": {
+                      opacity: 1,
+                    },
                   }}
                 >
-                  Manual
-                </Typography>
-              </Box>
-            </Tooltip>
-          </Box>
+                  <Checkbox
+                    id="manual-coords"
+                    checked={useManualCoords}
+                    onChange={(e) => setUseManualCoords(e.target.checked)}
+                    size="small"
+                    sx={{ p: 0.5 }}
+                  />
+                </Box>
+              </Tooltip>
+            </Grid>
+          </Grid>
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             fullWidth
             label="Square Feet"
@@ -341,7 +363,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             fullWidth
             label="Bedrooms"
@@ -353,7 +375,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             fullWidth
             label="Bathrooms"
@@ -369,7 +391,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 6 }}>
           <TextField
             fullWidth
             label="Year Built"

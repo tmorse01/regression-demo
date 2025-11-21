@@ -108,6 +108,9 @@ export default function ControlsPanel({
         top: 20,
         maxHeight: "calc(100vh - 40px)",
         overflowY: "auto",
+        overflowX: "hidden",
+        width: "100%",
+        minWidth: 0,
         "&::-webkit-scrollbar": {
           width: "8px",
         },
@@ -168,7 +171,7 @@ export default function ControlsPanel({
         </Box>
       </Box>
       <Collapse in={expanded}>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{ width: "100%", minWidth: 0 }}>
           <Grid size={{ xs: 12 }}>
             <Typography
               variant="body2"
@@ -182,7 +185,7 @@ export default function ControlsPanel({
             >
               Price
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, width: "100%", minWidth: 0 }}>
               <TextField
                 label="Min"
                 type="number"
@@ -191,6 +194,7 @@ export default function ControlsPanel({
                 onBlur={() => priceMinInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
                 InputProps={{
                   startAdornment: <span>$</span>,
                 }}
@@ -203,6 +207,7 @@ export default function ControlsPanel({
                 onBlur={() => priceMaxInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
                 InputProps={{
                   startAdornment: <span>$</span>,
                 }}
@@ -223,7 +228,7 @@ export default function ControlsPanel({
             >
               Size
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, width: "100%", minWidth: 0 }}>
               <TextField
                 label="Min"
                 type="number"
@@ -232,6 +237,7 @@ export default function ControlsPanel({
                 onBlur={() => sqftMinInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
               />
               <TextField
                 label="Max"
@@ -241,6 +247,7 @@ export default function ControlsPanel({
                 onBlur={() => sqftMaxInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
               />
             </Box>
           </Grid>
@@ -271,6 +278,7 @@ export default function ControlsPanel({
               step={1}
               marks
               valueLabelDisplay="auto"
+              sx={{ width: "100%" }}
             />
           </Grid>
 
@@ -300,6 +308,7 @@ export default function ControlsPanel({
               step={0.5}
               marks
               valueLabelDisplay="auto"
+              sx={{ width: "100%" }}
             />
           </Grid>
 
@@ -316,7 +325,7 @@ export default function ControlsPanel({
             >
               Year Built
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, width: "100%", minWidth: 0 }}>
               <TextField
                 label="Min"
                 type="number"
@@ -325,6 +334,7 @@ export default function ControlsPanel({
                 onBlur={() => yearBuiltMinInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
               />
               <TextField
                 label="Max"
@@ -334,6 +344,7 @@ export default function ControlsPanel({
                 onBlur={() => yearBuiltMaxInput.flush()}
                 size="small"
                 fullWidth
+                sx={{ minWidth: 0 }}
               />
             </Box>
           </Grid>
@@ -368,6 +379,7 @@ export default function ControlsPanel({
                 { value: 10, label: "10" },
               ]}
               valueLabelDisplay="auto"
+              sx={{ width: "100%" }}
             />
           </Grid>
         </Grid>

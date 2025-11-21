@@ -245,7 +245,7 @@ function App() {
                 overflowY: "auto",
                 position: { xs: "relative", md: "sticky" },
                 top: 0,
-                height: { xs: "auto", md: "calc(100vh - 64px)" },
+                height: { xs: "auto", md: "100vh" },
               }}
             >
               <SubjectPropertyForm
