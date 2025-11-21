@@ -1,4 +1,4 @@
-import { Paper, Typography, Box } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import type { SubjectProperty } from "../types/listing";
 
 interface SubjectSummaryProps {
@@ -11,8 +11,16 @@ export default function SubjectSummary({
   compCount,
 }: SubjectSummaryProps) {
   return (
-    <Paper sx={{ p: 2, mb: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{
+          fontWeight: 600,
+          mb: 2,
+          fontSize: "1.1rem",
+        }}
+      >
         Subject Property
       </Typography>
       <Typography variant="body1" gutterBottom>
@@ -26,7 +34,6 @@ export default function SubjectSummary({
       <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
         {compCount} comps found
       </Typography>
-    </Paper>
+    </Box>
   );
 }
-

@@ -5,6 +5,7 @@ export interface Listing {
   beds: number;
   baths: number;
   yearBuilt: number;
+  listingDate: number; // Year when listed/sold
   lat: number;
   lng: number;
   distanceFromSubject: number;
@@ -31,4 +32,3 @@ export interface Filters {
   yearBuiltMax: number | null;
   maxDistance: number | null;
 }
-

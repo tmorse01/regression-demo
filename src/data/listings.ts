@@ -34,6 +34,7 @@ export function generateListing(
   const beds = Math.floor(2 + Math.random() * 4);
   const baths = Math.round((1 + Math.random() * 2.5) * 2) / 2;
   const yearBuilt = 1965 + Math.floor(Math.random() * 55);
+  const listingDate = 2020 + Math.floor(Math.random() * 5); // 2020-2024
 
   const lat = subjectProperty.lat + (Math.random() - 0.5) * 0.02;
   const lng = subjectProperty.lng + (Math.random() - 0.5) * 0.02;
@@ -52,6 +53,7 @@ export function generateListing(
     beds,
     baths,
     yearBuilt,
+    listingDate,
     lat,
     lng,
     distanceFromSubject,
@@ -78,4 +80,3 @@ export function getDefaultSubjectProperty(): SubjectProperty {
     yearBuilt: 1998,
   };
 }
-

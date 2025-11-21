@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Grid from "@mui/material/Grid";
 import { Paper, Typography, useTheme } from "@mui/material";
 import {
@@ -11,13 +12,17 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
 } from "recharts";
 import ChartCard from "./ChartCard";
-import type { Listing } from "../types/listing";
+import type { Listing, SubjectProperty } from "../types/listing";
 import { computeLinearRegression } from "../utils/regression";
 
 interface ChartsGridProps {
   listings: Listing[];
+  subjectProperty?: SubjectProperty;
+  highlightedListingId?: string | null;
+  onListingHover?: (listingId: string | null) => void;
 }
 
 interface CustomTooltipProps {
@@ -95,15 +100,92 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export default function ChartsGrid({ listings }: ChartsGridProps) {
-  const theme = useTheme();
+// Helper function to get color based on distance or beds
+const getColorForPoint = (
+  _distance: number,
+  _maxDistance: number,
+  beds: number,
+  isSubject: boolean,
+  isHighlighted: boolean,
+  theme: {
+    palette: {
+      error: { main: string };
+      warning: { main: string };
+      info: { main: string };
+      primary: { main: string };
+      secondary: { main: string };
+      success?: { main: string };
+    };
+  }
+): string => {
+  if (isSubject) {
+    return theme.palette.error.main;
+  }
+  if (isHighlighted) {
+    return theme.palette.warning.main;
+  }
+  // Color by beds (2-5 beds map to colors)
+  const bedColors = [
+    theme.palette.info.main,
+    theme.palette.primary.main,
+    theme.palette.secondary.main,
+    theme.palette.success?.main || "#10b981",
+    theme.palette.warning.main,
+  ];
+  return bedColors[Math.min(beds - 1, 4)] || theme.palette.primary.main;
+};
 
-  const scatterData = listings.map((l) => ({
-    sqft: l.sqft,
-    price: l.price,
-    beds: l.beds,
-    baths: l.baths,
+export default function ChartsGrid({
+  listings,
+  subjectProperty,
+  highlightedListingId,
+  onListingHover,
+}: ChartsGridProps) {
+  const theme = useTheme();
+  const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
+
+  const maxDistance = Math.max(
+    ...listings.map((l) => l.distanceFromSubject),
+    1
+  );
+
+  const scatterData = listings.map((l) => {
+    const isHighlighted =
+      highlightedListingId === l.id || hoveredPoint === l.id;
+    return {
+      id: l.id,
+      sqft: l.sqft,
+      price: l.price,
+      beds: l.beds,
+      baths: l.baths,
+      distance: l.distanceFromSubject,
+      isHighlighted,
+      fill: getColorForPoint(
+        l.distanceFromSubject,
+        maxDistance,
+        l.beds,
+        false,
+        isHighlighted,
+        theme
+      ),
+      r: isHighlighted ? 6 : 4,
+    };
+  });
+
+  // Group by bed count for color coding
+  const scatterByBeds = [2, 3, 4, 5].map((bedCount) => ({
+    bedCount,
+    data: scatterData.filter((d) => d.beds === bedCount),
+    color: getColorForPoint(0, 1, bedCount, false, false, theme),
   }));
+
+  // Add subject property point if provided
+  const subjectPoint = subjectProperty
+    ? {
+        sqft: subjectProperty.sqft,
+        price: subjectProperty.sqft * 350, // Estimate
+      }
+    : null;
 
   // Calculate sqft range for proper axis domain
   const sqftMin = Math.min(...listings.map((l) => l.sqft));
@@ -212,22 +294,71 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter
-                dataKey="price"
-                fill={theme.palette.primary.main}
-                fillOpacity={0.5}
-              />
+              {scatterByBeds.map((group) => (
+                <Scatter
+                  key={`scatter-${group.bedCount}`}
+                  data={group.data}
+                  dataKey="price"
+                  fill={group.color}
+                  fillOpacity={0.6}
+                  onMouseEnter={(data: { id?: string }) => {
+                    const entry = scatterData.find((d) => d.id === data?.id);
+                    if (entry?.id && onListingHover) {
+                      setHoveredPoint(entry.id);
+                      onListingHover(entry.id);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredPoint(null);
+                    if (onListingHover) {
+                      onListingHover(null);
+                    }
+                  }}
+                />
+              ))}
+              {subjectPoint && (
+                <Scatter
+                  dataKey="price"
+                  data={[subjectPoint]}
+                  fill={theme.palette.error.main}
+                  fillOpacity={0.9}
+                  shape={(props: unknown) => {
+                    const p = props as { cx?: number; cy?: number };
+                    const { cx, cy } = p;
+                    if (cx === undefined || cy === undefined) {
+                      return <g />;
+                    }
+                    return (
+                      <g>
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={10}
+                          fill={theme.palette.error.main}
+                          fillOpacity={0.9}
+                          style={{
+                            filter: `drop-shadow(0 0 10px ${theme.palette.error.main})`,
+                          }}
+                        />
+                        <circle cx={cx} cy={cy} r={3} fill="#fff" />
+                      </g>
+                    );
+                  }}
+                />
+              )}
               {regressionLine && (
                 <Line
                   type="linear"
                   data={regressionLine}
                   dataKey="price"
                   stroke={theme.palette.error.main}
-                  strokeWidth={4}
+                  strokeWidth={3}
                   dot={false}
                   name="Regression Line"
                   strokeDasharray="5 5"
                   z={100}
+                  animationDuration={1000}
+                  animationEasing="ease-out"
                 />
               )}
             </ScatterChart>
@@ -270,11 +401,30 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter
-                dataKey="pricePerSqft"
-                fill={theme.palette.info.main}
-                fillOpacity={0.6}
-              />
+              <Scatter dataKey="pricePerSqft" fillOpacity={0.6}>
+                {distanceData.map((_entry, index) => {
+                  const listing = listings[index];
+                  const distanceRatio =
+                    listing.distanceFromSubject / maxDistance;
+                  const intensity = 1 - distanceRatio * 0.5; // Light to dark gradient
+                  const color = theme.palette.info.main;
+                  return (
+                    <Cell
+                      key={`cell-distance-${index}`}
+                      fill={color}
+                      opacity={intensity}
+                      r={highlightedListingId === listing.id ? 6 : 4}
+                      style={{
+                        filter:
+                          highlightedListingId === listing.id
+                            ? `drop-shadow(0 0 6px ${color})`
+                            : "none",
+                        transition: "all 0.2s ease",
+                      }}
+                    />
+                  );
+                })}
+              </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -361,11 +511,26 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter
-                dataKey="pricePerSqft"
-                fill={theme.palette.warning.main}
-                fillOpacity={0.6}
-              />
+              <Scatter dataKey="pricePerSqft" fillOpacity={0.6}>
+                {yearData.map((_entry, index) => {
+                  const listing = listings[index];
+                  const color = theme.palette.warning.main;
+                  return (
+                    <Cell
+                      key={`cell-year-${index}`}
+                      fill={color}
+                      r={highlightedListingId === listing.id ? 6 : 4}
+                      style={{
+                        filter:
+                          highlightedListingId === listing.id
+                            ? `drop-shadow(0 0 6px ${color})`
+                            : "none",
+                        transition: "all 0.2s ease",
+                      }}
+                    />
+                  );
+                })}
+              </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>

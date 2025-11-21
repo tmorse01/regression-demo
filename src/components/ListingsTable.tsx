@@ -19,9 +19,41 @@ type SortDirection = "asc" | "desc";
 
 interface ListingsTableProps {
   listings: Listing[];
+  highlightedListingId?: string | null;
+  onListingHover?: (listingId: string | null) => void;
 }
 
-export default function ListingsTable({ listings }: ListingsTableProps) {
+interface SortableHeaderProps {
+  field: SortField;
+  label: string;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+}
+
+const SortableHeader = ({
+  field,
+  label,
+  sortField,
+  sortDirection,
+  onSort,
+}: SortableHeaderProps) => (
+  <TableCell>
+    <TableSortLabel
+      active={sortField === field}
+      direction={sortField === field ? sortDirection : "asc"}
+      onClick={() => onSort(field)}
+    >
+      {label}
+    </TableSortLabel>
+  </TableCell>
+);
+
+export default function ListingsTable({
+  listings,
+  highlightedListingId,
+  onListingHover,
+}: ListingsTableProps) {
   const [sortField, setSortField] = useState<SortField>("distanceFromSubject");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [page, setPage] = useState(0);
@@ -71,30 +103,17 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
     setPage(0);
   };
 
-  const SortableHeader = ({
-    field,
-    label,
-  }: {
-    field: SortField;
-    label: string;
-  }) => (
-    <TableCell>
-      <TableSortLabel
-        active={sortField === field}
-        direction={sortField === field ? sortDirection : "asc"}
-        onClick={() => handleSort(field)}
-      >
-        {label}
-      </TableSortLabel>
-    </TableCell>
-  );
-
   return (
     <Paper sx={{ p: 2 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h6">
-          Comparable Properties
-        </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6">Comparable Properties</Typography>
         <Typography variant="body2" color="textSecondary">
           {listings.length} total properties
         </Typography>
@@ -103,21 +122,80 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <SortableHeader field="price" label="Price" />
-              <SortableHeader field="sqft" label="Sqft" />
-              <SortableHeader field="pricePerSqft" label="Price/Sqft" />
-              <SortableHeader field="beds" label="Beds" />
-              <SortableHeader field="baths" label="Baths" />
-              <SortableHeader field="yearBuilt" label="Year Built" />
+              <SortableHeader
+                field="price"
+                label="Price"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="sqft"
+                label="Sqft"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="pricePerSqft"
+                label="Price/Sqft"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="beds"
+                label="Beds"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="baths"
+                label="Baths"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
+                field="yearBuilt"
+                label="Year Built"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
               <SortableHeader
                 field="distanceFromSubject"
                 label="Distance (mi)"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
               />
             </TableRow>
           </TableHead>
           <TableBody>
             {paginatedListings.map((listing) => (
-              <TableRow key={listing.id} hover>
+              <TableRow
+                key={listing.id}
+                hover
+                onMouseEnter={() => {
+                  if (onListingHover) {
+                    onListingHover(listing.id);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (onListingHover) {
+                    onListingHover(null);
+                  }
+                }}
+                sx={{
+                  backgroundColor:
+                    highlightedListingId === listing.id
+                      ? "action.selected"
+                      : "transparent",
+                  transition: "background-color 0.2s ease",
+                }}
+              >
                 <TableCell>${listing.price.toLocaleString()}</TableCell>
                 <TableCell>{listing.sqft.toLocaleString()}</TableCell>
                 <TableCell>
@@ -145,4 +223,3 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
     </Paper>
   );
 }
-
