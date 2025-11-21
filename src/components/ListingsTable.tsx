@@ -8,7 +8,9 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  TablePagination,
   Typography,
+  Box,
 } from "@mui/material";
 import type { Listing } from "../types/listing";
 
@@ -22,6 +24,8 @@ interface ListingsTableProps {
 export default function ListingsTable({ listings }: ListingsTableProps) {
   const [sortField, setSortField] = useState<SortField>("distanceFromSubject");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -51,6 +55,22 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
     }
   });
 
+  const paginatedListings = sortedListings.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
   const SortableHeader = ({
     field,
     label,
@@ -71,11 +91,16 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Comparable Properties
-      </Typography>
-      <TableContainer>
-        <Table size="small">
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6">
+          Comparable Properties
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          {listings.length} total properties
+        </Typography>
+      </Box>
+      <TableContainer sx={{ maxHeight: 600 }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <SortableHeader field="price" label="Price" />
@@ -91,7 +116,7 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedListings.map((listing) => (
+            {paginatedListings.map((listing) => (
               <TableRow key={listing.id} hover>
                 <TableCell>${listing.price.toLocaleString()}</TableCell>
                 <TableCell>{listing.sqft.toLocaleString()}</TableCell>
@@ -107,6 +132,16 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={sortedListings.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[10, 25, 50, 100]}
+        labelRowsPerPage="Rows per page:"
+      />
     </Paper>
   );
 }

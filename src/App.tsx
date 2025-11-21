@@ -136,7 +136,7 @@ function App() {
             <SummaryBar listings={filteredListings} />
 
             <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <ControlsPanel
                   filters={filters}
                   onFiltersChange={setFilters}
@@ -144,7 +144,7 @@ function App() {
                 />
               </Grid>
 
-              <Grid item xs={12} md={9}>
+              <Grid size={{ xs: 12, md: 9 }}>
                 <ChartsGrid listings={filteredListings} />
               </Grid>
             </Grid>

@@ -1,4 +1,5 @@
-import { Grid } from "@mui/material";
+import Grid from "@mui/material/Grid";
+import { Paper, Typography, useTheme } from "@mui/material";
 import {
   ScatterChart,
   Scatter,
@@ -25,37 +26,93 @@ interface CustomTooltipProps {
     name?: string;
     value?: number | string;
   }>;
+  label?: string | number;
 }
 
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+const formatPriceValue = (
+  name: string | undefined,
+  value: number | string
+): string => {
+  if (typeof value !== "number") return String(value);
+
+  // Format Price values (for first chart)
+  if (name === "Price") {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(2)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}k`;
+    }
+    return `$${value.toLocaleString()}`;
+  }
+
+  // Format Price/Sqft values (for second chart) - abbreviate
+  if (name === "Price/Sqft" || name?.includes("Price/Sqft")) {
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(1)}k/sqft`;
+    }
+    return `$${Math.round(value)}/sqft`;
+  }
+
+  // Default formatting for other numeric values
+  return value.toLocaleString();
+};
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "8px",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
+      <Paper
+        elevation={4}
+        sx={(theme) => ({
+          p: 1.5,
+          backgroundColor: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: 1,
+        })}
       >
+        {label && (
+          <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600 }}>
+            {typeof label === "number" ? label.toLocaleString() : label}
+          </Typography>
+        )}
         {payload.map((entry, index) => (
-          <p key={index} style={{ margin: 0 }}>
-            {entry.name}: {entry.value?.toLocaleString?.() || entry.value}
-          </p>
+          <Typography
+            key={index}
+            variant="body2"
+            sx={(theme) => ({
+              color: theme.palette.text.primary,
+              "&:not(:last-child)": { mb: 0.5 },
+            })}
+          >
+            <strong>{entry.name}:</strong>{" "}
+            {typeof entry.value === "number"
+              ? formatPriceValue(entry.name, entry.value)
+              : entry.value}
+          </Typography>
         ))}
-      </div>
+      </Paper>
     );
   }
   return null;
 };
 
 export default function ChartsGrid({ listings }: ChartsGridProps) {
+  const theme = useTheme();
+
   const scatterData = listings.map((l) => ({
     sqft: l.sqft,
     price: l.price,
     beds: l.beds,
     baths: l.baths,
   }));
+
+  // Calculate sqft range for proper axis domain
+  const sqftMin = Math.min(...listings.map((l) => l.sqft));
+  const sqftMax = Math.max(...listings.map((l) => l.sqft));
+  const sqftRange = sqftMax - sqftMin;
+  const sqftDomain = [
+    Math.max(0, sqftMin - sqftRange * 0.05), // Add 5% padding below, but don't go below 0
+    sqftMax + sqftRange * 0.05, // Add 5% padding above
+  ];
 
   const regressionLine = computeLinearRegression(
     listings.map((l) => ({ sqft: l.sqft, price: l.price }))
@@ -69,6 +126,15 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
   const pricePerSqftData = listings.map((l) => l.price / l.sqft);
   const minPricePerSqft = Math.min(...pricePerSqftData);
   const maxPricePerSqft = Math.max(...pricePerSqftData);
+
+  // Calculate price per sqft domain with padding (5% padding on each side)
+  // Start at the minimum value in the dataset, not 0
+  const pricePerSqftRange = maxPricePerSqft - minPricePerSqft;
+  const pricePerSqftDomain = [
+    minPricePerSqft - pricePerSqftRange * 0.05, // Start at min with 5% padding below
+    maxPricePerSqft + pricePerSqftRange * 0.05, // End at max with 5% padding above
+  ];
+
   const binSize = (maxPricePerSqft - minPricePerSqft) / 20;
   const histogramData = Array.from({ length: 20 }, (_, i) => {
     const binStart = minPricePerSqft + i * binSize;
@@ -88,45 +154,80 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
     pricePerSqft: l.price / l.sqft,
   }));
 
+  // Calculate year range for proper axis domain
+  const yearMin = Math.min(...listings.map((l) => l.yearBuilt));
+  const yearMax = Math.max(...listings.map((l) => l.yearBuilt));
+  const yearDomain = [
+    Math.floor(yearMin / 10) * 10 - 5, // Round down to nearest 10 and subtract 5
+    Math.ceil(yearMax / 10) * 10 + 5, // Round up to nearest 10 and add 5
+  ];
+
+  // Chart styling constants
+  const axisStyle = {
+    stroke: theme.palette.text.secondary,
+    fontSize: 12,
+    fontFamily: theme.typography.fontFamily,
+  };
+
+  const gridStyle = {
+    stroke: theme.palette.divider,
+    strokeDasharray: "3 3",
+    strokeOpacity: 0.5,
+  };
+
   return (
-    <Grid container spacing={2}>
-      <Grid item xs={12} md={6}>
+    <Grid container spacing={2} sx={{ width: "100%" }}>
+      <Grid size={{ xs: 12, md: 6, lg: 6 }}>
         <ChartCard title="Sqft vs Price (with Regression)" height={300}>
           <ResponsiveContainer width="100%" height={300}>
-            <ScatterChart data={scatterData}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <ScatterChart
+              data={scatterData}
+              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+            >
+              <CartesianGrid {...gridStyle} />
               <XAxis
                 type="number"
                 dataKey="sqft"
                 name="Square Feet"
+                domain={sqftDomain}
+                tick={axisStyle}
                 label={{
                   value: "Square Feet",
                   position: "insideBottom",
                   offset: -5,
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
               />
               <YAxis
                 type="number"
                 dataKey="price"
                 name="Price"
+                tick={axisStyle}
+                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                 label={{
                   value: "Price ($)",
                   angle: -90,
                   position: "insideLeft",
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter dataKey="price" fill="#4caf50" />
+              <Scatter
+                dataKey="price"
+                fill={theme.palette.primary.main}
+                fillOpacity={0.5}
+              />
               {regressionLine && (
                 <Line
                   type="linear"
                   data={regressionLine}
                   dataKey="price"
-                  stroke="#ff5722"
-                  strokeWidth={2}
+                  stroke={theme.palette.error.main}
+                  strokeWidth={4}
                   dot={false}
                   name="Regression Line"
+                  strokeDasharray="5 5"
+                  z={100}
                 />
               )}
             </ScatterChart>
@@ -134,92 +235,137 @@ export default function ChartsGrid({ listings }: ChartsGridProps) {
         </ChartCard>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6, lg: 6 }}>
         <ChartCard title="Distance vs Price/Sqft" height={300}>
           <ResponsiveContainer width="100%" height={300}>
-            <ScatterChart data={distanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <ScatterChart
+              data={distanceData}
+              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+            >
+              <CartesianGrid {...gridStyle} />
               <XAxis
                 type="number"
                 dataKey="distance"
                 name="Distance (miles)"
+                tick={axisStyle}
                 label={{
                   value: "Distance (miles)",
                   position: "insideBottom",
                   offset: -5,
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
               />
               <YAxis
                 type="number"
                 dataKey="pricePerSqft"
                 name="Price/Sqft"
+                domain={pricePerSqftDomain}
+                tick={axisStyle}
+                tickFormatter={(value) => `$${Math.round(value)}`}
                 label={{
-                  value: "Price/Sqft ($)",
+                  value: "$/Sqft",
                   angle: -90,
-                  position: "insideLeft",
+                  position: "left",
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter dataKey="pricePerSqft" fill="#2196f3" />
+              <Scatter
+                dataKey="pricePerSqft"
+                fill={theme.palette.info.main}
+                fillOpacity={0.6}
+              />
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6, lg: 6 }}>
         <ChartCard title="Price/Sqft Distribution" height={300}>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={histogramData}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <BarChart
+              data={histogramData}
+              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+            >
+              <CartesianGrid {...gridStyle} />
               <XAxis
                 dataKey="mid"
+                tick={axisStyle}
                 label={{
                   value: "Price/Sqft ($)",
                   position: "insideBottom",
                   offset: -5,
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
                 tickFormatter={(value) => `$${Math.round(value)}`}
               />
               <YAxis
-                label={{ value: "Count", angle: -90, position: "insideLeft" }}
+                tick={axisStyle}
+                label={{
+                  value: "Count",
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { ...axisStyle, fontWeight: 500 },
+                }}
+                domain={[0, "dataMax"]}
               />
               <Tooltip
+                content={<CustomTooltip />}
                 labelFormatter={(value) => `$${Math.round(value)}`}
                 formatter={(value: number) => value}
               />
-              <Bar dataKey="count" fill="#4caf50" />
+              <Bar
+                dataKey="count"
+                fill={theme.palette.primary.main}
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6, lg: 6 }}>
         <ChartCard title="Year Built vs Price/Sqft" height={300}>
           <ResponsiveContainer width="100%" height={300}>
-            <ScatterChart data={yearData}>
-              <CartesianGrid strokeDasharray="3 3" />
+            <ScatterChart
+              data={yearData}
+              margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+            >
+              <CartesianGrid {...gridStyle} />
               <XAxis
                 type="number"
                 dataKey="year"
                 name="Year Built"
+                domain={yearDomain}
+                tick={axisStyle}
                 label={{
                   value: "Year Built",
                   position: "insideBottom",
                   offset: -5,
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
+                tickFormatter={(value) => value.toString()}
               />
               <YAxis
                 type="number"
                 dataKey="pricePerSqft"
                 name="Price/Sqft"
+                domain={pricePerSqftDomain}
+                tick={axisStyle}
+                tickFormatter={(value) => `$${Math.round(value)}`}
                 label={{
-                  value: "Price/Sqft ($)",
+                  value: "$/Sqft",
                   angle: -90,
-                  position: "insideLeft",
+                  position: "left",
+                  style: { ...axisStyle, fontWeight: 500 },
                 }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Scatter dataKey="pricePerSqft" fill="#ff9800" />
+              <Scatter
+                dataKey="pricePerSqft"
+                fill={theme.palette.warning.main}
+                fillOpacity={0.6}
+              />
             </ScatterChart>
           </ResponsiveContainer>
         </ChartCard>
