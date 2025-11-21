@@ -4,6 +4,7 @@ import {
   useTransition,
   Suspense,
   useDeferredValue,
+  useEffect,
 } from "react";
 import {
   Container,
@@ -49,6 +50,7 @@ const defaultFilters: Filters = {
 };
 
 function App() {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [subjectProperty, setSubjectProperty] = useState<SubjectProperty>(
     getDefaultSubjectProperty()
   );
@@ -63,6 +65,20 @@ function App() {
     2020, 2024,
   ]);
   const [isChartPending, startChartTransition] = useTransition();
+
+  // Simulate initial data generation with a delay
+  useEffect(() => {
+    const simulateDataGeneration = async () => {
+      // Simulate generating 150 listings with a delay
+      // Progress bar will fill to ~95% during this time
+      await new Promise((resolve) => setTimeout(resolve, 2700));
+      // Small delay to let progress bar complete to 100%
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setIsInitialLoading(false);
+    };
+
+    simulateDataGeneration();
+  }, []);
 
   // Debounced filters with optimistic updates
   const {
@@ -189,6 +205,11 @@ function App() {
 
   const showEmptyState = filteredListings.length === 0;
   const isAnyPending = isFiltersPending || isChartPending || isDeferredPending;
+
+  // Show loader during initial data generation
+  if (isInitialLoading) {
+    return <Loader />;
+  }
 
   return (
     <Box

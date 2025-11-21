@@ -1,52 +1,48 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, LinearProgress } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { useTheme } from "@mui/material/styles";
+import { useState, useEffect } from "react";
 
-// Define keyframe animations
-const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
+// Subtle pulse animation for logo
 const pulse = keyframes`
   0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.1);
-    opacity: 0.8;
-  }
-`;
-
-const barWave = keyframes`
-  0%, 100% {
-    transform: scaleY(0.3);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-`;
-
-const dotBounce = keyframes`
-  0%, 80%, 100% {
-    transform: translateY(0);
-    opacity: 0.5;
-  }
-  40% {
-    transform: translateY(-10px);
-    opacity: 1;
+    opacity: 0.7;
   }
 `;
 
 export default function Loader() {
   const theme = useTheme();
+  const [progress, setProgress] = useState(0);
+
+  // Fake progress bar animation - slower to show loader longer
+  useEffect(() => {
+    const startTime = Date.now();
+    const duration = 3000; // Total duration to reach 100%
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progressPercent = Math.min((elapsed / duration) * 100, 100);
+
+      setProgress((oldProgress) => {
+        // Smooth progression with slight randomization for natural feel
+        const baseProgress = progressPercent;
+        const randomOffset = (Math.random() - 0.5) * 2; // Small random variation
+        const newProgress = Math.min(
+          Math.max(baseProgress + randomOffset, oldProgress),
+          100
+        );
+
+        return newProgress;
+      });
+    }, 50); // Update more frequently for smoother animation
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <Box
@@ -60,73 +56,22 @@ export default function Loader() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#f8fafc",
+        backgroundColor: theme.palette.background.default,
         zIndex: 9999,
       }}
     >
-      {/* Animated Logo/Icon */}
+      {/* Logo */}
       <Box
+        component="img"
+        src="/favicon.svg"
+        alt="Logo"
         sx={{
-          position: "relative",
-          width: 120,
-          height: 120,
+          width: 100,
+          height: 100,
           mb: 4,
+          animation: `${pulse} 2s ease-in-out infinite`,
         }}
-      >
-        {/* Outer rotating ring */}
-        <Box
-          sx={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            border: "3px solid",
-            borderColor: `${theme.palette.secondary.main}20`,
-            borderTopColor: theme.palette.secondary.main,
-            borderRadius: "50%",
-            animation: `${spin} 1s linear infinite`,
-          }}
-        />
-
-        {/* Inner pulsing circle */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 60,
-            height: 60,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-            animation: `${pulse} 1.5s ease-in-out infinite`,
-          }}
-        />
-      </Box>
-
-      {/* Animated bars (data visualization style) */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 1,
-          mb: 3,
-          height: 40,
-        }}
-      >
-        {[0, 1, 2, 3, 4].map((index) => (
-          <Box
-            key={index}
-            sx={{
-              width: 8,
-              height: "100%",
-              backgroundColor: theme.palette.secondary.main,
-              borderRadius: "4px 4px 0 0",
-              animation: `${barWave} 1.2s ease-in-out infinite`,
-              animationDelay: `${index * 0.1}s`,
-            }}
-          />
-        ))}
-      </Box>
+      />
 
       {/* Loading text */}
       <Typography
@@ -135,27 +80,27 @@ export default function Loader() {
           color: theme.palette.primary.main,
           fontWeight: 500,
           letterSpacing: "0.05em",
-          mb: 1,
+          mb: 3,
         }}
       >
         Loading Analytics
       </Typography>
 
-      {/* Animated dots */}
-      <Box sx={{ display: "flex", gap: 0.5 }}>
-        {[0, 1, 2].map((index) => (
-          <Box
-            key={index}
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              backgroundColor: theme.palette.secondary.main,
-              animation: `${dotBounce} 1.4s ease-in-out infinite`,
-              animationDelay: `${index * 0.2}s`,
-            }}
-          />
-        ))}
+      {/* Progress bar */}
+      <Box sx={{ width: "100%", maxWidth: 320, px: 2 }}>
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: theme.palette.grey[200],
+            "& .MuiLinearProgress-bar": {
+              borderRadius: 3,
+              background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+            },
+          }}
+        />
       </Box>
     </Box>
   );
