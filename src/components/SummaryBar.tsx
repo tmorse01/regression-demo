@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Grid, Box } from "@mui/material";
+import { Card, CardContent, Typography, Grid } from "@mui/material";
 import type { Listing } from "../types/listing";
 import {
   medianPrice,
@@ -18,7 +18,7 @@ export default function SummaryBar({ listings }: SummaryBarProps) {
 
   return (
     <Grid container spacing={2} sx={{ mb: 2 }}>
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Card>
           <CardContent>
             <Typography color="textSecondary" gutterBottom variant="body2">
@@ -31,7 +31,7 @@ export default function SummaryBar({ listings }: SummaryBarProps) {
         </Card>
       </Grid>
 
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Card>
           <CardContent>
             <Typography color="textSecondary" gutterBottom variant="body2">
@@ -44,7 +44,7 @@ export default function SummaryBar({ listings }: SummaryBarProps) {
         </Card>
       </Grid>
 
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Card>
           <CardContent>
             <Typography color="textSecondary" gutterBottom variant="body2">
@@ -57,7 +57,7 @@ export default function SummaryBar({ listings }: SummaryBarProps) {
         </Card>
       </Grid>
 
-      <Grid item xs={12} sm={6} md={3}>
+      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <Card>
           <CardContent>
             <Typography color="textSecondary" gutterBottom variant="body2">

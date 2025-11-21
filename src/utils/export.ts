@@ -56,7 +56,6 @@ export function exportToPDF(
   filename: string = "comps-report.pdf"
 ): void {
   const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 10;
   let yPos = margin;
 
@@ -67,10 +66,10 @@ export function exportToPDF(
 
   // Subject Property
   doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.text("Subject Property", margin, yPos);
   yPos += 7;
-  doc.setFont(undefined, "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(
     `${subjectProperty.address}`,
@@ -87,10 +86,10 @@ export function exportToPDF(
 
   // Summary Statistics
   doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.text("Summary Statistics", margin, yPos);
   yPos += 7;
-  doc.setFont(undefined, "normal");
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(`Active Comps: ${stats.count}`, margin, yPos);
   yPos += 5;
@@ -115,7 +114,7 @@ export function exportToPDF(
 
   // Table Header
   doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.text("Comparable Properties", margin, yPos);
   yPos += 7;
 
@@ -125,14 +124,14 @@ export function exportToPDF(
   let xPos = margin;
 
   doc.setFontSize(9);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   tableHeaders.forEach((header, i) => {
     doc.text(header, xPos, yPos);
     xPos += colWidths[i];
   });
   yPos += 5;
 
-  doc.setFont(undefined, "normal");
+  doc.setFont("helvetica", "normal");
   listings.slice(0, 20).forEach((listing) => {
     if (yPos > 280) {
       doc.addPage();

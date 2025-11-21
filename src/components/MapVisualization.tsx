@@ -14,18 +14,13 @@ const mapContainerStyle = {
   height: "400px",
 };
 
-const defaultCenter = {
-  lat: 48.75,
-  lng: -122.48,
-};
-
 export default function MapVisualization({
   subjectProperty,
   listings,
   apiKey,
 }: MapVisualizationProps) {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [_map, setMap] = useState<google.maps.Map | null>(null);
 
   const center = {
     lat: subjectProperty.lat,

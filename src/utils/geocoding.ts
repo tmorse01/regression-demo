@@ -6,7 +6,7 @@ export interface GeocodeResult {
 
 export async function geocodeAddress(
   address: string,
-  apiKey: string
+  _apiKey: string
 ): Promise<GeocodeResult | null> {
   try {
     if (typeof google === "undefined" || !google.maps) {
@@ -36,7 +36,7 @@ export async function geocodeAddress(
 export async function reverseGeocode(
   lat: number,
   lng: number,
-  apiKey: string
+  _apiKey: string
 ): Promise<string | null> {
   try {
     if (typeof google === "undefined" || !google.maps) {

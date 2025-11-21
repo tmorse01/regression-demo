@@ -39,7 +39,7 @@ export default function SubjectPropertyForm({
     PlacePrediction[]
   >([]);
   const [apiError, setApiError] = useState<string | null>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setAddressInput(subjectProperty.address);
@@ -64,16 +64,21 @@ export default function SubjectPropertyForm({
         setApiError(null);
         const predictions = await getPlacePredictions(value, apiKey);
         setAutocompleteSuggestions(predictions);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Autocomplete error:", error);
         setAutocompleteSuggestions([]);
 
         // Show helpful error message if API is disabled
-        if (error?.apiDisabled) {
+        if (error && typeof error === "object" && "apiDisabled" in error) {
           setApiError(
             "Places API (New) is not enabled. Please enable it in Google Cloud Console."
           );
-        } else if (error?.status === 403) {
+        } else if (
+          error &&
+          typeof error === "object" &&
+          "status" in error &&
+          error.status === 403
+        ) {
           setApiError(
             "Access denied. Please check that Places API (New) is enabled and your API key has the correct permissions."
           );
@@ -119,7 +124,7 @@ export default function SubjectPropertyForm({
       } else {
         setGeocodingError("Failed to get place details");
       }
-    } catch (error) {
+    } catch {
       setGeocodingError("Failed to get place details");
     }
 
@@ -154,7 +159,7 @@ export default function SubjectPropertyForm({
       if (address) {
         setAddressInput(address);
       }
-    } catch (error) {
+    } catch {
       setGeocodingError("Failed to reverse geocode coordinates");
       onSubjectPropertyChange({
         ...subjectProperty,
@@ -232,7 +237,7 @@ export default function SubjectPropertyForm({
       )}
 
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box sx={{ mb: 2, position: "relative" }}>
             <MuiAutocomplete
               freeSolo
@@ -304,7 +309,7 @@ export default function SubjectPropertyForm({
           </Box>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <TextField
             fullWidth
             label="Square Feet"
@@ -316,7 +321,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <TextField
             fullWidth
             label="Bedrooms"
@@ -328,7 +333,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <TextField
             fullWidth
             label="Bathrooms"
@@ -344,7 +349,7 @@ export default function SubjectPropertyForm({
           />
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <TextField
             fullWidth
             label="Year Built"
