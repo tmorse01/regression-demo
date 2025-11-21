@@ -1,10 +1,6 @@
 import { useState, useCallback } from "react";
 import { Paper, Typography, Box } from "@mui/material";
-import {
-  GoogleMap,
-  Marker,
-  InfoWindow,
-} from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import type { Listing, SubjectProperty } from "../types/listing";
 
 interface MapVisualizationProps {
@@ -100,7 +96,7 @@ export default function MapVisualization({
             icon={{
               path: google.maps.SymbolPath.CIRCLE,
               scale: 6,
-              fillColor: "#4caf50",
+              fillColor: "#3b82f6",
               fillOpacity: 0.8,
               strokeColor: "#ffffff",
               strokeWeight: 1,
@@ -122,7 +118,8 @@ export default function MapVisualization({
               </div>
               <div>{selectedListing.sqft.toLocaleString()} sqft</div>
               <div>
-                ${(selectedListing.price / selectedListing.sqft).toFixed(2)}/sqft
+                ${(selectedListing.price / selectedListing.sqft).toFixed(2)}
+                /sqft
               </div>
               <div>
                 {selectedListing.beds} bed · {selectedListing.baths} bath
@@ -138,4 +135,3 @@ export default function MapVisualization({
     </Paper>
   );
 }
-

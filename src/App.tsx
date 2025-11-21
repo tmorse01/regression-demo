@@ -16,6 +16,7 @@ import SummaryBar from "./components/SummaryBar";
 import ChartsGrid from "./components/ChartsGrid";
 import ListingsTable from "./components/ListingsTable";
 import ExportButton from "./components/ExportButton";
+import Loader from "./components/Loader";
 import type { Listing, SubjectProperty, Filters } from "./types/listing";
 import { generateListings, getDefaultSubjectProperty } from "./data/listings";
 
@@ -96,16 +97,24 @@ function App() {
   ];
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: "100vh", backgroundColor: "#f5f5f5" }}>
+    <Box sx={{ flexGrow: 1, minHeight: "100vh", backgroundColor: "#f8fafc" }}>
       {mapsApiKey ? (
         <LoadScript
           googleMapsApiKey={mapsApiKey}
           libraries={libraries}
-          loadingElement={<div>Loading...</div>}
+          loadingElement={<Loader />}
         >
-          <AppBar position="static" sx={{ mb: 3 }}>
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <AppBar position="static" sx={{ mb: 4 }}>
+            <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  flexGrow: 1,
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 Construction Lender Regression Analysis
               </Typography>
               <ExportButton
@@ -156,9 +165,17 @@ function App() {
         </LoadScript>
       ) : (
         <>
-          <AppBar position="static" sx={{ mb: 3 }}>
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <AppBar position="static" sx={{ mb: 4 }}>
+            <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  flexGrow: 1,
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                }}
+              >
                 Construction Lender Regression Analysis
               </Typography>
             </Toolbar>
