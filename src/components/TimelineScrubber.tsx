@@ -1,18 +1,28 @@
 import { Box, Typography, Slider } from "@mui/material";
 import { useMemo } from "react";
 import type { Listing } from "../types/listing";
+import { useDebouncedInput } from "../hooks/useDebouncedInput";
 
 interface TimelineScrubberProps {
   listings: Listing[];
-  dateRange: [number, number];
+  initialDateRange: [number, number];
   onDateRangeChange: (range: [number, number]) => void;
 }
 
 export default function TimelineScrubber({
   listings,
-  dateRange,
+  initialDateRange,
   onDateRangeChange,
 }: TimelineScrubberProps) {
+  // Use reusable debounced input hook
+  const {
+    value: localRange,
+    handleChange: handleDebouncedChange,
+    handleCommit,
+  } = useDebouncedInput(initialDateRange, onDateRangeChange, {
+    debounceMs: 250,
+  });
+
   const { minDate, maxDate } = useMemo(() => {
     if (listings.length === 0) {
       return { minDate: 2020, maxDate: 2024 };
@@ -26,9 +36,21 @@ export default function TimelineScrubber({
     };
   }, [listings]);
 
+  // Handle slider change - immediate visual update, debounced parent update
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const values = newValue as number[];
-    onDateRangeChange([values[0], values[1]]);
+    const newRange: [number, number] = [values[0], values[1]];
+    handleDebouncedChange(newRange);
+  };
+
+  // Handle slider commit - flush debounced update immediately when user releases
+  const handleChangeCommitted = (
+    _event: Event | React.SyntheticEvent,
+    newValue: number | number[]
+  ) => {
+    const values = newValue as number[];
+    const newRange: [number, number] = [values[0], values[1]];
+    handleCommit(newRange);
   };
 
   return (
@@ -47,8 +69,9 @@ export default function TimelineScrubber({
         Listing Date Range
       </Typography>
       <Slider
-        value={dateRange}
+        value={localRange}
         onChange={handleChange}
+        onChangeCommitted={handleChangeCommitted}
         min={minDate}
         max={maxDate}
         step={1}

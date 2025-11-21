@@ -1,4 +1,21 @@
-# React + TypeScript + Vite
+# Construction Lender Regression Analysis
+
+A React + TypeScript + Vite application for analyzing real estate property data with regression analysis and data visualization.
+
+## Documentation
+
+- **[Theme Documentation](./docs/THEME.md)** - Complete design system, color palette, typography, and styling guidelines
+
+## Tech Stack
+
+- React + TypeScript + Vite
+- Material-UI (MUI) for components and theming
+- Recharts for data visualization
+- Google Maps API for location visualization
+
+---
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

@@ -31,7 +31,6 @@ import EmptyState from "./components/EmptyState";
 import TimelineScrubber from "./components/TimelineScrubber";
 import TransitionIndicator from "./components/TransitionIndicator";
 import { useDebouncedFilters } from "./hooks/useDebouncedFilters";
-import { useDebouncedValue } from "./hooks/useDebouncedValue";
 import type { SubjectProperty, Filters } from "./types/listing";
 import { generateListings, getDefaultSubjectProperty } from "./data/listings";
 
@@ -75,12 +74,11 @@ function App() {
     onFiltersChange: setActualFilters,
   });
 
-  // Debounced date range with optimistic updates
-  const {
-    value: dateRange,
-    updateValue: updateDateRange,
-    isPending: isDatePending,
-  } = useDebouncedValue(actualDateRange, 150, setActualDateRange);
+  // Date range is managed locally in TimelineScrubber component
+  // Only update parent state via debounced callback from the component
+  const handleDateRangeChange = (range: [number, number]) => {
+    setActualDateRange(range);
+  };
 
   const allListings = useMemo(() => {
     return generateListings(150, subjectProperty);
@@ -89,9 +87,9 @@ function App() {
   // Defer heavy filtering computation - this allows inputs to feel instant
   // while the expensive filtering happens in the background
   const deferredFilters = useDeferredValue(filters);
-  const deferredDateRange = useDeferredValue(dateRange);
+  const deferredDateRange = useDeferredValue(actualDateRange);
   const isDeferredPending =
-    filters !== deferredFilters || dateRange !== deferredDateRange;
+    filters !== deferredFilters || actualDateRange !== deferredDateRange;
 
   // Heavy computation - only runs when deferred values change
   // This is automatically low-priority thanks to useDeferredValue
@@ -190,8 +188,7 @@ function App() {
   ];
 
   const showEmptyState = filteredListings.length === 0;
-  const isAnyPending =
-    isFiltersPending || isDatePending || isChartPending || isDeferredPending;
+  const isAnyPending = isFiltersPending || isChartPending || isDeferredPending;
 
   return (
     <Box
@@ -316,8 +313,8 @@ function App() {
                 {!showEmptyState && (
                   <TimelineScrubber
                     listings={filteredListings}
-                    dateRange={dateRange}
-                    onDateRangeChange={updateDateRange}
+                    initialDateRange={actualDateRange}
+                    onDateRangeChange={handleDateRangeChange}
                   />
                 )}
 

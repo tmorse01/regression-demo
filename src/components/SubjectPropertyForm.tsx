@@ -9,6 +9,8 @@ import {
   Alert,
   CircularProgress,
   Autocomplete as MuiAutocomplete,
+  Checkbox,
+  Tooltip,
 } from "@mui/material";
 import type { SubjectProperty } from "../types/listing";
 import { reverseGeocode } from "../utils/geocoding";
@@ -274,7 +276,7 @@ export default function SubjectPropertyForm({
             />
           </Box>
 
-          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+          <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center" }}>
             <TextField
               label="Latitude"
               type="number"
@@ -282,7 +284,7 @@ export default function SubjectPropertyForm({
               onChange={(e) => setManualLat(e.target.value)}
               onBlur={handleManualCoordsChange}
               size="small"
-              sx={{ flex: 1 }}
+              sx={{ flex: 2 }}
               disabled={!useManualCoords}
             />
             <TextField
@@ -292,20 +294,38 @@ export default function SubjectPropertyForm({
               onChange={(e) => setManualLng(e.target.value)}
               onBlur={handleManualCoordsChange}
               size="small"
-              sx={{ flex: 1 }}
+              sx={{ flex: 2 }}
               disabled={!useManualCoords}
             />
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={useManualCoords}
-                onChange={(e) => setUseManualCoords(e.target.checked)}
-                id="manual-coords"
-              />
-              <label htmlFor="manual-coords" style={{ marginLeft: 8 }}>
-                Manual
-              </label>
-            </Box>
+            <Tooltip title="Enable manual coordinate input" arrow>
+              <Box
+                component="label"
+                htmlFor="manual-coords"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  ml: 1,
+                  cursor: "pointer",
+                }}
+              >
+                <Checkbox
+                  id="manual-coords"
+                  checked={useManualCoords}
+                  onChange={(e) => setUseManualCoords(e.target.checked)}
+                  size="small"
+                  sx={{ p: 0.5 }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: "0.75rem",
+                    userSelect: "none",
+                  }}
+                >
+                  Manual
+                </Typography>
+              </Box>
+            </Tooltip>
           </Box>
         </Grid>
 

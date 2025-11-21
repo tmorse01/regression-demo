@@ -25,6 +25,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: [
+      '"Poppins"',
       "-apple-system",
       "BlinkMacSystemFont",
       '"Segoe UI"',
@@ -33,6 +34,52 @@ const theme = createTheme({
       "Arial",
       "sans-serif",
     ].join(","),
+    h1: {
+      fontWeight: 700,
+      fontSize: "2.5rem",
+      lineHeight: 1.2,
+      letterSpacing: "-0.02em",
+    },
+    h2: {
+      fontWeight: 700,
+      fontSize: "2rem",
+      lineHeight: 1.3,
+      letterSpacing: "-0.02em",
+    },
+    h3: {
+      fontWeight: 600,
+      fontSize: "1.75rem",
+      lineHeight: 1.3,
+      letterSpacing: "-0.01em",
+    },
+    h4: {
+      fontWeight: 600,
+      fontSize: "1.5rem",
+      lineHeight: 1.4,
+    },
+    h5: {
+      fontWeight: 600,
+      fontSize: "1.25rem",
+      lineHeight: 1.4,
+      letterSpacing: "-0.02em",
+    },
+    h6: {
+      fontWeight: 600,
+      fontSize: "1.125rem",
+      lineHeight: 1.5,
+    },
+    body1: {
+      fontSize: "1rem",
+      lineHeight: 1.5,
+    },
+    body2: {
+      fontSize: "0.875rem",
+      lineHeight: 1.5,
+    },
+    button: {
+      fontWeight: 500,
+      textTransform: "none",
+    },
   },
   components: {
     MuiAppBar: {

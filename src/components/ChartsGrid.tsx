@@ -17,6 +17,12 @@ import {
 import ChartCard from "./ChartCard";
 import type { Listing, SubjectProperty } from "../types/listing";
 import { computeLinearRegression } from "../utils/regression";
+import {
+  getBedColor,
+  getSubjectPropertyColor,
+  getRegressionLineColor,
+  getHighlightedColor,
+} from "../utils/chartPalette";
 
 interface ChartsGridProps {
   listings: Listing[];
@@ -101,38 +107,22 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 // Helper function to get color based on distance or beds
+// Now uses the chart palette for theme-aligned colors
 const getColorForPoint = (
   _distance: number,
   _maxDistance: number,
   beds: number,
   isSubject: boolean,
-  isHighlighted: boolean,
-  theme: {
-    palette: {
-      error: { main: string };
-      warning: { main: string };
-      info: { main: string };
-      primary: { main: string };
-      secondary: { main: string };
-      success?: { main: string };
-    };
-  }
+  isHighlighted: boolean
 ): string => {
   if (isSubject) {
-    return theme.palette.error.main;
+    return getSubjectPropertyColor();
   }
   if (isHighlighted) {
-    return theme.palette.warning.main;
+    return getHighlightedColor();
   }
-  // Color by beds (2-5 beds map to colors)
-  const bedColors = [
-    theme.palette.info.main,
-    theme.palette.primary.main,
-    theme.palette.secondary.main,
-    theme.palette.success?.main || "#10b981",
-    theme.palette.warning.main,
-  ];
-  return bedColors[Math.min(beds - 1, 4)] || theme.palette.primary.main;
+  // Color by beds using theme-aligned palette
+  return getBedColor(beds);
 };
 
 export default function ChartsGrid({
@@ -165,8 +155,7 @@ export default function ChartsGrid({
         maxDistance,
         l.beds,
         false,
-        isHighlighted,
-        theme
+        isHighlighted
       ),
       r: isHighlighted ? 6 : 4,
     };
@@ -176,7 +165,7 @@ export default function ChartsGrid({
   const scatterByBeds = [2, 3, 4, 5].map((bedCount) => ({
     bedCount,
     data: scatterData.filter((d) => d.beds === bedCount),
-    color: getColorForPoint(0, 1, bedCount, false, false, theme),
+    color: getColorForPoint(0, 1, bedCount, false, false),
   }));
 
   // Add subject property point if provided
@@ -320,7 +309,7 @@ export default function ChartsGrid({
                 <Scatter
                   dataKey="price"
                   data={[subjectPoint]}
-                  fill={theme.palette.error.main}
+                  fill={getSubjectPropertyColor()}
                   fillOpacity={0.9}
                   shape={(props: unknown) => {
                     const p = props as { cx?: number; cy?: number };
@@ -328,16 +317,17 @@ export default function ChartsGrid({
                     if (cx === undefined || cy === undefined) {
                       return <g />;
                     }
+                    const subjectColor = getSubjectPropertyColor();
                     return (
                       <g>
                         <circle
                           cx={cx}
                           cy={cy}
                           r={10}
-                          fill={theme.palette.error.main}
+                          fill={subjectColor}
                           fillOpacity={0.9}
                           style={{
-                            filter: `drop-shadow(0 0 10px ${theme.palette.error.main})`,
+                            filter: `drop-shadow(0 0 10px ${subjectColor})`,
                           }}
                         />
                         <circle cx={cx} cy={cy} r={3} fill="#fff" />
@@ -351,7 +341,7 @@ export default function ChartsGrid({
                   type="linear"
                   data={regressionLine}
                   dataKey="price"
-                  stroke={theme.palette.error.main}
+                  stroke={getRegressionLineColor()}
                   strokeWidth={3}
                   dot={false}
                   name="Regression Line"

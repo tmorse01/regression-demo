@@ -12,6 +12,7 @@ import {
 import { FilterList, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { useState } from "react";
 import type { Filters } from "../types/listing";
+import { useDebouncedInput } from "../hooks/useDebouncedInput";
 
 interface ControlsPanelProps {
   filters: Filters;
@@ -26,13 +27,71 @@ export default function ControlsPanel({
 }: ControlsPanelProps) {
   const [expanded, setExpanded] = useState(true);
 
+  // Helper to update a single filter field
   const updateFilter = (field: keyof Filters, value: number | null) => {
-    // This will trigger the debounced update in the parent
     onFiltersChange({
       ...filters,
       [field]: value,
     });
   };
+
+  // Debounced inputs for TextFields - local state with debounced parent updates
+  const priceMinInput = useDebouncedInput<string>(
+    filters.priceMin?.toString() || "",
+    (value) => updateFilter("priceMin", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  const priceMaxInput = useDebouncedInput<string>(
+    filters.priceMax?.toString() || "",
+    (value) => updateFilter("priceMax", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  const sqftMinInput = useDebouncedInput<string>(
+    filters.sqftMin?.toString() || "",
+    (value) => updateFilter("sqftMin", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  const sqftMaxInput = useDebouncedInput<string>(
+    filters.sqftMax?.toString() || "",
+    (value) => updateFilter("sqftMax", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  const yearBuiltMinInput = useDebouncedInput<string>(
+    filters.yearBuiltMin?.toString() || "",
+    (value) =>
+      updateFilter("yearBuiltMin", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  const yearBuiltMaxInput = useDebouncedInput<string>(
+    filters.yearBuiltMax?.toString() || "",
+    (value) =>
+      updateFilter("yearBuiltMax", value === "" ? null : Number(value)),
+    { debounceMs: 300 }
+  );
+
+  // Debounced inputs for Sliders
+  const minBedsSlider = useDebouncedInput(
+    filters.minBeds || 0,
+    (value) => updateFilter("minBeds", value),
+    { debounceMs: 200 }
+  );
+
+  const minBathsSlider = useDebouncedInput(
+    filters.minBaths || 0,
+    (value) => updateFilter("minBaths", value),
+    { debounceMs: 200 }
+  );
+
+  const maxDistanceSlider = useDebouncedInput(
+    filters.maxDistance || 10,
+    (value) => updateFilter("maxDistance", value),
+    { debounceMs: 200 }
+  );
 
   return (
     <Paper
@@ -127,13 +186,9 @@ export default function ControlsPanel({
               <TextField
                 label="Min"
                 type="number"
-                value={filters.priceMin || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "priceMin",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={priceMinInput.value}
+                onChange={(e) => priceMinInput.handleChange(e.target.value)}
+                onBlur={() => priceMinInput.flush()}
                 size="small"
                 fullWidth
                 InputProps={{
@@ -143,13 +198,9 @@ export default function ControlsPanel({
               <TextField
                 label="Max"
                 type="number"
-                value={filters.priceMax || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "priceMax",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={priceMaxInput.value}
+                onChange={(e) => priceMaxInput.handleChange(e.target.value)}
+                onBlur={() => priceMaxInput.flush()}
                 size="small"
                 fullWidth
                 InputProps={{
@@ -176,26 +227,18 @@ export default function ControlsPanel({
               <TextField
                 label="Min"
                 type="number"
-                value={filters.sqftMin || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "sqftMin",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={sqftMinInput.value}
+                onChange={(e) => sqftMinInput.handleChange(e.target.value)}
+                onBlur={() => sqftMinInput.flush()}
                 size="small"
                 fullWidth
               />
               <TextField
                 label="Max"
                 type="number"
-                value={filters.sqftMax || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "sqftMax",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={sqftMaxInput.value}
+                onChange={(e) => sqftMaxInput.handleChange(e.target.value)}
+                onBlur={() => sqftMaxInput.flush()}
                 size="small"
                 fullWidth
               />
@@ -213,11 +256,16 @@ export default function ControlsPanel({
                 mb: 1,
               }}
             >
-              Bedrooms: {filters.minBeds || 0}
+              Bedrooms: {minBedsSlider.value}
             </Typography>
             <Slider
-              value={filters.minBeds || 0}
-              onChange={(_, value) => updateFilter("minBeds", value as number)}
+              value={minBedsSlider.value}
+              onChange={(_, value) =>
+                minBedsSlider.handleChange(value as number)
+              }
+              onChangeCommitted={(_, value) =>
+                minBedsSlider.handleCommit(value as number)
+              }
               min={0}
               max={6}
               step={1}
@@ -237,11 +285,16 @@ export default function ControlsPanel({
                 mb: 1,
               }}
             >
-              Bathrooms: {filters.minBaths || 0}
+              Bathrooms: {minBathsSlider.value}
             </Typography>
             <Slider
-              value={filters.minBaths || 0}
-              onChange={(_, value) => updateFilter("minBaths", value as number)}
+              value={minBathsSlider.value}
+              onChange={(_, value) =>
+                minBathsSlider.handleChange(value as number)
+              }
+              onChangeCommitted={(_, value) =>
+                minBathsSlider.handleCommit(value as number)
+              }
               min={0}
               max={5}
               step={0.5}
@@ -267,26 +320,18 @@ export default function ControlsPanel({
               <TextField
                 label="Min"
                 type="number"
-                value={filters.yearBuiltMin || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "yearBuiltMin",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={yearBuiltMinInput.value}
+                onChange={(e) => yearBuiltMinInput.handleChange(e.target.value)}
+                onBlur={() => yearBuiltMinInput.flush()}
                 size="small"
                 fullWidth
               />
               <TextField
                 label="Max"
                 type="number"
-                value={filters.yearBuiltMax || ""}
-                onChange={(e) =>
-                  updateFilter(
-                    "yearBuiltMax",
-                    e.target.value ? parseInt(e.target.value) : null
-                  )
-                }
+                value={yearBuiltMaxInput.value}
+                onChange={(e) => yearBuiltMaxInput.handleChange(e.target.value)}
+                onBlur={() => yearBuiltMaxInput.flush()}
                 size="small"
                 fullWidth
               />
@@ -304,12 +349,15 @@ export default function ControlsPanel({
                 mb: 1,
               }}
             >
-              Max Distance (miles): {filters.maxDistance || "No limit"}
+              Max Distance (miles): {maxDistanceSlider.value || "No limit"}
             </Typography>
             <Slider
-              value={filters.maxDistance || 10}
+              value={maxDistanceSlider.value}
               onChange={(_, value) =>
-                updateFilter("maxDistance", value as number)
+                maxDistanceSlider.handleChange(value as number)
+              }
+              onChangeCommitted={(_, value) =>
+                maxDistanceSlider.handleCommit(value as number)
               }
               min={0}
               max={10}
