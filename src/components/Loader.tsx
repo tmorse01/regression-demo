@@ -1,7 +1,7 @@
 import { Box, Typography, LinearProgress } from "@mui/material";
 import { keyframes } from "@mui/system";
 import { useTheme } from "@mui/material/styles";
-import { useState, useEffect } from "react";
+import { useLoadingProgress } from "../hooks/useLoadingProgress";
 
 // Subtle pulse animation for logo
 const pulse = keyframes`
@@ -15,34 +15,7 @@ const pulse = keyframes`
 
 export default function Loader() {
   const theme = useTheme();
-  const [progress, setProgress] = useState(0);
-
-  // Fake progress bar animation - slower to show loader longer
-  useEffect(() => {
-    const startTime = Date.now();
-    const duration = 3000; // Total duration to reach 100%
-
-    const timer = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const progressPercent = Math.min((elapsed / duration) * 100, 100);
-
-      setProgress((oldProgress) => {
-        // Smooth progression with slight randomization for natural feel
-        const baseProgress = progressPercent;
-        const randomOffset = (Math.random() - 0.5) * 2; // Small random variation
-        const newProgress = Math.min(
-          Math.max(baseProgress + randomOffset, oldProgress),
-          100
-        );
-
-        return newProgress;
-      });
-    }, 50); // Update more frequently for smoother animation
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+  const progress = useLoadingProgress({ duration: 3000, updateInterval: 50 });
 
   return (
     <Box
