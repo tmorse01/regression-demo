@@ -11,6 +11,7 @@ import {
   Autocomplete as MuiAutocomplete,
   Checkbox,
   Tooltip,
+  Button,
 } from "@mui/material";
 import type { SubjectProperty } from "../types/listing";
 import { reverseGeocode } from "../utils/geocoding";
@@ -19,6 +20,7 @@ import {
   getPlaceDetails,
   type PlacePrediction,
 } from "../utils/placesApi";
+import MapPinModal from "./MapPinModal";
 
 interface SubjectPropertyFormProps {
   subjectProperty: SubjectProperty;
@@ -41,6 +43,7 @@ export default function SubjectPropertyForm({
     PlacePrediction[]
   >([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -182,6 +185,16 @@ export default function SubjectPropertyForm({
       ...subjectProperty,
       [field]: value,
     });
+  };
+
+  const handleMapPinSubmit = (lat: number, lng: number) => {
+    onSubjectPropertyChange({
+      ...subjectProperty,
+      lat,
+      lng,
+    });
+    setManualLat(lat.toString());
+    setManualLng(lng.toString());
   };
 
   return (
@@ -349,6 +362,16 @@ export default function SubjectPropertyForm({
               </Tooltip>
             </Grid>
           </Grid>
+
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setIsMapModalOpen(true)}
+              fullWidth
+            >
+              Open Map
+            </Button>
+          </Box>
         </Grid>
 
         <Grid size={{ xs: 6 }}>
@@ -406,6 +429,15 @@ export default function SubjectPropertyForm({
           />
         </Grid>
       </Grid>
+
+      <MapPinModal
+        open={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        onSubmit={handleMapPinSubmit}
+        initialLat={subjectProperty.lat}
+        initialLng={subjectProperty.lng}
+        apiKey={apiKey}
+      />
     </Paper>
   );
 }
