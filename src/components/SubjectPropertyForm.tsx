@@ -274,15 +274,18 @@ export default function SubjectPropertyForm({
                   label="Property Address"
                   placeholder="Search for an address..."
                   disabled={useManualCoords || isGeocoding}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: isGeocoding ? (
-                      <InputAdornment position="end">
-                        <CircularProgress size={20} />
-                      </InputAdornment>
-                    ) : (
-                      params.InputProps.endAdornment
-                    ),
+                  slotProps={{
+                    ...params.slotProps,
+                    input: {
+                      ...params.slotProps?.input,
+                      endAdornment: isGeocoding ? (
+                        <InputAdornment position="end">
+                          <CircularProgress size={20} />
+                        </InputAdornment>
+                      ) : (
+                        params.slotProps?.input?.endAdornment
+                      ),
+                    },
                   }}
                 />
               )}
@@ -410,7 +413,7 @@ export default function SubjectPropertyForm({
                 parseFloat(e.target.value) || 0
               )
             }
-            inputProps={{ step: 0.5 }}
+            slotProps={{ htmlInput: { step: 0.5 } }}
           />
         </Grid>
 

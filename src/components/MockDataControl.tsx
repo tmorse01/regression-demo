@@ -23,7 +23,7 @@ interface MockDataControlProps {
 
 const defaults: GenerateListingsOptions = {
   sqftSpread: 1200,
-  geoSpread: 0.02,
+  geoSpread: 0.08,
   pricePerSqftBase: 350,
   pricePerSqftVariance: 40,
   seed: null,
@@ -114,7 +114,7 @@ export default function MockDataControl({
           fullWidth
           value={count}
           onChange={(e) => setCount(e.target.value)}
-          inputProps={{ min: 1, max: 2000 }}
+          slotProps={{ htmlInput: { min: 1, max: 2000 } }}
           sx={{ mb: 1.5 }}
         />
         <TextField

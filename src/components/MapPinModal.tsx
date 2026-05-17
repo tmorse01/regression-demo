@@ -135,8 +135,7 @@ export default function MapPinModal({
           variant="caption"
           color="textSecondary"
           align="center"
-          display="block"
-          sx={{ mt: 1 }}
+          sx={{ mt: 1, display: "block" }}
         >
           Click on the map to place a marker
         </Typography>

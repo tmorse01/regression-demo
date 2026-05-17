@@ -6,7 +6,8 @@ const DEFAULT_SUBJECT_SQFT = 1800;
 
 const DEFAULT_GENERATION = {
   sqftSpread: 1200,
-  geoSpread: 0.02,
+  /** Degrees; ~0.08° ≈ 9 km N–S — fits typical zoom-12 framed area around subject. */
+  geoSpread: 0.08,
   pricePerSqftBase: 350,
   pricePerSqftVariance: 40,
 } as const;

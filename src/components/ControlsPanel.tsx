@@ -200,8 +200,8 @@ export default function ControlsPanel({
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
-                InputProps={{
-                  startAdornment: <span>$</span>,
+                slotProps={{
+                  input: { startAdornment: <span>$</span> },
                 }}
               />
               <TextField
@@ -213,8 +213,8 @@ export default function ControlsPanel({
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
-                InputProps={{
-                  startAdornment: <span>$</span>,
+                slotProps={{
+                  input: { startAdornment: <span>$</span> },
                 }}
               />
             </Box>
