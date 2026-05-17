@@ -5,6 +5,8 @@ import {
   Suspense,
   useDeferredValue,
   useEffect,
+  useRef,
+  useCallback,
   lazy,
 } from "react";
 import {
@@ -26,6 +28,7 @@ import MapVisualization from "./components/MapVisualization";
 import ControlsPanel from "./components/ControlsPanel";
 import KPITiles from "./components/KPITiles";
 import ExportButton from "./components/ExportButton";
+import ShareButton from "./components/ShareButton";
 import ImportButton from "./components/ImportButton";
 import MockDataControl from "./components/MockDataControl";
 import Loader from "./components/Loader";
@@ -50,6 +53,12 @@ import { createAppTheme } from "./theme/appTheme";
 import { glassCardSx } from "./theme/glassSurfaces";
 import { LISTINGS_VIZ_CAP } from "./constants/listingsViz";
 import { sampleListingsForViz } from "./utils/sampleListingsForViz";
+import {
+  loadInitialWorkspace,
+  persistedToSnapshot,
+  writeSnapshotToLocalStorage,
+  type WorkspacePersistedFields,
+} from "./utils/workspacePersistence";
 
 const ChartsGrid = lazy(() => import("./components/ChartsGrid"));
 const ListingsTable = lazy(() => import("./components/ListingsTable"));
@@ -68,36 +77,64 @@ const defaultFilters: Filters = {
   maxDistance: null,
 };
 
+const defaultWorkspacePersisted: WorkspacePersistedFields = {
+  subjectProperty: getDefaultSubjectProperty(),
+  actualFilters: defaultFilters,
+  actualDateRange: [2020, 2024],
+  viewMode: "overview",
+  themeMode: "light",
+  activePreset: null,
+  listingsSource: "synthetic",
+  syntheticCount: 150,
+  syntheticOptions: {},
+  importedListings: null,
+};
+
 /** Stable identity for @react-google-maps/api; must not be recreated each render. */
 const MAP_LIBRARIES = ["places"] as ("places" | "drawing" | "geometry" | "visualization")[];
 
 type ListingsSource = "synthetic" | "imported";
 
 function App() {
+  const [initialWorkspace] = useState(() =>
+    loadInitialWorkspace(defaultWorkspacePersisted)
+  );
+
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [subjectProperty, setSubjectProperty] = useState<SubjectProperty>(
-    getDefaultSubjectProperty()
+    () => initialWorkspace.subjectProperty
   );
-  const [actualFilters, setActualFilters] = useState<Filters>(defaultFilters);
-  const [viewMode, setViewMode] = useState<ViewMode>("overview");
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
-  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [actualFilters, setActualFilters] = useState<Filters>(
+    () => initialWorkspace.actualFilters
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    () => initialWorkspace.viewMode
+  );
+  const [themeMode, setThemeMode] = useState<ThemeMode>(
+    () => initialWorkspace.themeMode
+  );
+  const [activePreset, setActivePreset] = useState<string | null>(
+    () => initialWorkspace.activePreset
+  );
   const [highlightedListingId, setHighlightedListingId] = useState<
     string | null
   >(null);
-  const [actualDateRange, setActualDateRange] = useState<[number, number]>([
-    2020, 2024,
-  ]);
+  const [actualDateRange, setActualDateRange] = useState<[number, number]>(
+    () => initialWorkspace.actualDateRange
+  );
   const [isChartPending, startChartTransition] = useTransition();
 
-  const [listingsSource, setListingsSource] =
-    useState<ListingsSource>("synthetic");
-  const [importedListings, setImportedListings] = useState<Listing[] | null>(
-    null
+  const [listingsSource, setListingsSource] = useState<ListingsSource>(
+    () => initialWorkspace.listingsSource
   );
-  const [syntheticCount, setSyntheticCount] = useState(150);
+  const [importedListings, setImportedListings] = useState<Listing[] | null>(
+    () => initialWorkspace.importedListings
+  );
+  const [syntheticCount, setSyntheticCount] = useState(
+    () => initialWorkspace.syntheticCount
+  );
   const [syntheticOptions, setSyntheticOptions] =
-    useState<GenerateListingsOptions>({});
+    useState<GenerateListingsOptions>(() => initialWorkspace.syntheticOptions);
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -134,6 +171,91 @@ function App() {
     debounceMs: 150,
     onFiltersChange: setActualFilters,
   });
+
+  const quotaWarnedRef = useRef(false);
+
+  useEffect(() => {
+    if (initialWorkspace.hydrationSource === "hash") {
+      setSnackbar({
+        open: true,
+        message: "Opened shared workspace link.",
+        severity: "info",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot welcome
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const snapshot = persistedToSnapshot({
+        subjectProperty,
+        actualFilters,
+        actualDateRange,
+        viewMode,
+        themeMode,
+        activePreset,
+        listingsSource,
+        syntheticCount,
+        syntheticOptions,
+        importedListings,
+      });
+      const ok = writeSnapshotToLocalStorage(snapshot);
+      if (!ok && !quotaWarnedRef.current) {
+        quotaWarnedRef.current = true;
+        setSnackbar({
+          open: true,
+          message:
+            "Could not save workspace locally. Your browser storage may be full.",
+          severity: "warning",
+        });
+      }
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [
+    subjectProperty,
+    actualFilters,
+    actualDateRange,
+    viewMode,
+    themeMode,
+    activePreset,
+    listingsSource,
+    syntheticCount,
+    syntheticOptions,
+    importedListings,
+  ]);
+
+  const getWorkspace = useCallback((): WorkspacePersistedFields => {
+    return {
+      subjectProperty,
+      actualFilters,
+      actualDateRange,
+      viewMode,
+      themeMode,
+      activePreset,
+      listingsSource,
+      syntheticCount,
+      syntheticOptions,
+      importedListings,
+    };
+  }, [
+    subjectProperty,
+    actualFilters,
+    actualDateRange,
+    viewMode,
+    themeMode,
+    activePreset,
+    listingsSource,
+    syntheticCount,
+    syntheticOptions,
+    importedListings,
+  ]);
+
+  const notifyShare = useCallback(
+    (message: string, severity: "success" | "error" | "warning" | "info") => {
+      setSnackbar({ open: true, message, severity });
+    },
+    []
+  );
 
   const handleDateRangeChange = (range: [number, number]) => {
     setActualDateRange(range);
@@ -369,6 +491,11 @@ function App() {
                       initialCount={syntheticCount}
                       initialOptions={syntheticOptions}
                       onApply={handleMockApply}
+                    />
+                    <ShareButton
+                      getWorkspace={getWorkspace}
+                      listingsSource={listingsSource}
+                      onNotify={notifyShare}
                     />
                     <ExportButton
                       listings={filteredListings}
