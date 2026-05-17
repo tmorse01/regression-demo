@@ -48,6 +48,8 @@ import type { ImportParseResult } from "./utils/importListings";
 import { PRODUCT_NAME, PRODUCT_PAGE_TITLE } from "./brand";
 import { createAppTheme } from "./theme/appTheme";
 import { glassCardSx } from "./theme/glassSurfaces";
+import { LISTINGS_VIZ_CAP } from "./constants/listingsViz";
+import { sampleListingsForViz } from "./utils/sampleListingsForViz";
 
 const ChartsGrid = lazy(() => import("./components/ChartsGrid"));
 const ListingsTable = lazy(() => import("./components/ListingsTable"));
@@ -290,6 +292,12 @@ function App() {
     return filtered;
   }, [allListings, deferredFilters, deferredDateRange]);
 
+  const vizListings = useMemo(
+    () => sampleListingsForViz(filteredListings, LISTINGS_VIZ_CAP),
+    [filteredListings]
+  );
+  const isVizDownsampled = filteredListings.length > LISTINGS_VIZ_CAP;
+
   const handleResetFilters = () => {
     startChartTransition(() => {
       setActualFilters(defaultFilters);
@@ -445,6 +453,17 @@ function App() {
                       onThemeModeChange={setThemeMode}
                     />
 
+                    {!showEmptyState && isVizDownsampled && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        Showing {vizListings.length} of{" "}
+                        {filteredListings.length} comparables on the map and
+                        scatter charts for performance. KPIs, the regression
+                        line, and histograms still reflect all{" "}
+                        {filteredListings.length} rows. Narrow filters or the
+                        year range to focus the workspace.
+                      </Alert>
+                    )}
+
                     {!showEmptyState && (
                       <TimelineScrubber
                         listings={filteredListings}
@@ -477,6 +496,7 @@ function App() {
                             <Suspense fallback={<Loader variant="embedded" />}>
                               <ChartsGrid
                                 listings={filteredListings}
+                                scatterListings={vizListings}
                                 subjectProperty={subjectProperty}
                                 highlightedListingId={highlightedListingId}
                                 onListingHover={setHighlightedListingId}
@@ -500,7 +520,7 @@ function App() {
                           <Box sx={{ mt: 3 }}>
                             <MapVisualization
                               subjectProperty={subjectProperty}
-                              listings={filteredListings}
+                              listings={vizListings}
                               apiKey={mapsApiKey}
                             />
                           </Box>

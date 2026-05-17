@@ -26,6 +26,8 @@ import {
 
 interface ChartsGridProps {
   listings: Listing[];
+  /** If set, scatter charts use this subset; regression, histograms, and axes still use `listings`. */
+  scatterListings?: Listing[];
   subjectProperty?: SubjectProperty;
   highlightedListingId?: string | null;
   onListingHover?: (listingId: string | null) => void;
@@ -127,6 +129,7 @@ const getColorForPoint = (
 
 export default function ChartsGrid({
   listings,
+  scatterListings,
   subjectProperty,
   highlightedListingId,
   onListingHover,
@@ -134,12 +137,14 @@ export default function ChartsGrid({
   const theme = useTheme();
   const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
 
+  const plotListings = scatterListings ?? listings;
+
   const maxDistance = Math.max(
     ...listings.map((l) => l.distanceFromSubject),
     1
   );
 
-  const scatterData = listings.map((l) => {
+  const scatterData = plotListings.map((l) => {
     const isHighlighted =
       highlightedListingId === l.id || hoveredPoint === l.id;
     return {
@@ -189,7 +194,7 @@ export default function ChartsGrid({
     listings.map((l) => ({ sqft: l.sqft, price: l.price }))
   );
 
-  const distanceData = listings.map((l) => ({
+  const distanceData = plotListings.map((l) => ({
     distance: l.distanceFromSubject,
     pricePerSqft: l.price / l.sqft,
   }));
@@ -220,7 +225,7 @@ export default function ChartsGrid({
     };
   });
 
-  const yearData = listings.map((l) => ({
+  const yearData = plotListings.map((l) => ({
     year: l.yearBuilt,
     pricePerSqft: l.price / l.sqft,
   }));
@@ -395,7 +400,7 @@ export default function ChartsGrid({
               <Tooltip content={<CustomTooltip />} />
               <Scatter dataKey="pricePerSqft" fillOpacity={0.6}>
                 {distanceData.map((_entry, index) => {
-                  const listing = listings[index];
+                  const listing = plotListings[index];
                   const distanceRatio =
                     listing.distanceFromSubject / maxDistance;
                   const intensity = 1 - distanceRatio * 0.5; // Light to dark gradient
@@ -505,7 +510,7 @@ export default function ChartsGrid({
               <Tooltip content={<CustomTooltip />} />
               <Scatter dataKey="pricePerSqft" fillOpacity={0.6}>
                 {yearData.map((_entry, index) => {
-                  const listing = listings[index];
+                  const listing = plotListings[index];
                   const color = theme.palette.warning.main;
                   return (
                     <Cell

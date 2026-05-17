@@ -237,7 +237,9 @@ function LoaderChrome({
         </Typography>
       )}
 
-      <Box sx={{ width: "100%", maxWidth: barMaxWidth, px: isFullscreen ? 0 : 1 }}>
+      <Box
+        sx={{ width: "100%", maxWidth: barMaxWidth, px: isFullscreen ? 0 : 1 }}
+      >
         <BrandGradientBar
           mode={mode}
           determinate={!!determinate}
@@ -282,7 +284,7 @@ function LoaderChrome({
 
 function LoaderFullscreen() {
   const theme = useTheme();
-  const progress = useLoadingProgress({ duration: 3000, updateInterval: 50 });
+  const progress = useLoadingProgress({ duration: 1000, updateInterval: 50 });
 
   return (
     <Box
