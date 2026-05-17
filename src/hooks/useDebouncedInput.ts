@@ -3,20 +3,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 /**
  * Reusable hook for debounced input handling
  *
- * Provides immediate local state updates for responsive UI while debouncing
- * expensive parent state updates. Perfect for TextFields, Sliders, and other inputs.
+ * **strategy `'debounce'`** (default): immediate local UI updates plus debounced parent
+ * updates on each change (good while dragging sliders that need gradual feedback elsewhere).
  *
- * @param initialValue - Initial value for the input
- * @param onValueChange - Callback to update parent state (debounced)
- * @param debounceMs - Debounce delay in milliseconds (default: 250)
- * @param onCommit - Optional immediate callback when user commits (e.g., onBlur, onChangeCommitted)
+ * **strategy `'commit'`**: changes only update local state; parent receives values on
+ * `handleCommit` / `flush` (e.g. TextField blur, Slider release). Optionally
+ * **`commitIdleDebounceMs`** also pushes to the parent after the user stops changing
+ * the value for that long — without requiring blur — while **`dirty`** blocks prop
+ * overwrites mid-typing (preset/reset may not reflect until blur if still editing).
  *
- * @returns Object with:
- *   - value: Current local value (updates immediately)
- *   - setValue: Function to update the value
- *   - handleChange: Debounced change handler
- *   - handleCommit: Immediate commit handler
- *   - flush: Manually flush pending debounced update
+ * @param debounceMs - Debounce delay when strategy is `'debounce'` (default: 250)
+ * @param commitIdleDebounceMs - When strategy is `'commit'`, idle timeout to call `onValueChange`
  */
 export function useDebouncedInput<T>(
   initialValue: T,
@@ -24,28 +21,45 @@ export function useDebouncedInput<T>(
   options?: {
     debounceMs?: number;
     onCommit?: (value: T) => void;
+    strategy?: "debounce" | "commit";
+    /** Idle push to parent without blur (commit strategy only). */
+    commitIdleDebounceMs?: number;
   }
 ) {
-  const { debounceMs = 250, onCommit } = options || {};
+  const {
+    debounceMs = 250,
+    onCommit,
+    strategy = "debounce",
+    commitIdleDebounceMs,
+  } = options || {};
 
-  // Local state for immediate UI updates
   const [localValue, setLocalValue] = useState<T>(initialValue);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Mirrors localValue for synchronous comparisons inside idle callbacks */
+  const localRef = useRef<T>(initialValue);
+  /** Latest value passed to handleChange; idle callback reads this */
+  const latestIdleRef = useRef<T>(initialValue);
+  const dirtyRef = useRef(false);
 
-  // Sync local state when initial value changes externally (e.g., from filter presets)
+  // sync from props
   useEffect(() => {
+    if (strategy === "commit") {
+      if (dirtyRef.current) return;
+      setLocalValue(initialValue);
+      localRef.current = initialValue;
+      return;
+    }
     setLocalValue(initialValue);
-  }, [initialValue]);
+    localRef.current = initialValue;
+  }, [initialValue, strategy]);
 
-  // Debounced update function
   const debouncedUpdate = useCallback(
     (value: T) => {
-      // Clear existing debounce timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
-      // Debounce the parent update
       debounceTimerRef.current = setTimeout(() => {
         onValueChange(value);
       }, debounceMs);
@@ -53,30 +67,58 @@ export function useDebouncedInput<T>(
     [onValueChange, debounceMs]
   );
 
-  // Handle change - immediate local update, debounced parent update
   const handleChange = useCallback(
     (value: T) => {
-      setLocalValue(value);
-      debouncedUpdate(value);
-    },
-    [debouncedUpdate]
-  );
-
-  // Handle commit - flush debounced update immediately
-  const handleCommit = useCallback(
-    (value: T) => {
-      // Clear any pending debounced update
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
 
+      latestIdleRef.current = value;
+      localRef.current = value;
       setLocalValue(value);
+      dirtyRef.current = true;
 
-      // Immediate update to parent
+      if (strategy === "debounce") {
+        debouncedUpdate(value);
+        return;
+      }
+
+      if (commitIdleDebounceMs != null && commitIdleDebounceMs > 0) {
+        idleTimerRef.current = setTimeout(() => {
+          idleTimerRef.current = null;
+          const v = latestIdleRef.current;
+          onValueChange(v);
+          if (Object.is(v, localRef.current)) {
+            dirtyRef.current = false;
+          }
+        }, commitIdleDebounceMs);
+      }
+    },
+    [debouncedUpdate, strategy, commitIdleDebounceMs, onValueChange]
+  );
+
+  const handleCommit = useCallback(
+    (value: T) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+
+      latestIdleRef.current = value;
+      localRef.current = value;
+      setLocalValue(value);
       onValueChange(value);
+      dirtyRef.current = false;
 
-      // Call optional commit callback
       if (onCommit) {
         onCommit(value);
       }
@@ -84,20 +126,27 @@ export function useDebouncedInput<T>(
     [onValueChange, onCommit]
   );
 
-  // Manually flush pending update
   const flush = useCallback(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
-    onValueChange(localValue);
-  }, [localValue, onValueChange]);
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+    const v = localRef.current;
+    onValueChange(v);
+    dirtyRef.current = false;
+  }, [onValueChange]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+      }
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
       }
     };
   }, []);

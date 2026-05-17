@@ -12,9 +12,17 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { glassCardSx } from "../theme/glassSurfaces";
 import { FilterList, ExpandMore, ExpandLess } from "@mui/icons-material";
+import type { KeyboardEvent } from "react";
 import { useState } from "react";
 import type { Filters } from "../types/listing";
 import { useDebouncedInput } from "../hooks/useDebouncedInput";
+import {
+  formatThousandsFromDigits,
+  stripToAmountDigits,
+} from "../utils/currencyDigitsInput";
+
+/** Apply filter from numeric text inputs after idle (no blur) — price, sqft, year-built. */
+const FILTER_TEXT_COMMIT_IDLE_MS = 1200;
 
 interface ControlsPanelProps {
   filters: Filters;
@@ -38,63 +46,95 @@ export default function ControlsPanel({
     });
   };
 
-  // Debounced inputs for TextFields - local state with debounced parent updates
+  /** Local digits; blur/Enter commit immediately. Long idle pushes filter without blur. */
   const priceMinInput = useDebouncedInput<string>(
     filters.priceMin?.toString() || "",
     (value) => updateFilter("priceMin", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
   const priceMaxInput = useDebouncedInput<string>(
     filters.priceMax?.toString() || "",
     (value) => updateFilter("priceMax", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
   const sqftMinInput = useDebouncedInput<string>(
     filters.sqftMin?.toString() || "",
     (value) => updateFilter("sqftMin", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
   const sqftMaxInput = useDebouncedInput<string>(
     filters.sqftMax?.toString() || "",
     (value) => updateFilter("sqftMax", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
   const yearBuiltMinInput = useDebouncedInput<string>(
     filters.yearBuiltMin?.toString() || "",
     (value) =>
       updateFilter("yearBuiltMin", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
   const yearBuiltMaxInput = useDebouncedInput<string>(
     filters.yearBuiltMax?.toString() || "",
     (value) =>
       updateFilter("yearBuiltMax", value === "" ? null : Number(value)),
-    { debounceMs: 300 }
+    { strategy: "commit", commitIdleDebounceMs: FILTER_TEXT_COMMIT_IDLE_MS }
   );
 
-  // Debounced inputs for Sliders
+  /** Thumb moves during drag locally; filtered data updates on release */
   const minBedsSlider = useDebouncedInput(
     filters.minBeds || 0,
     (value) => updateFilter("minBeds", value),
-    { debounceMs: 200 }
+    { strategy: "commit" }
   );
 
   const minBathsSlider = useDebouncedInput(
     filters.minBaths || 0,
     (value) => updateFilter("minBaths", value),
-    { debounceMs: 200 }
+    { strategy: "commit" }
   );
 
   const maxDistanceSlider = useDebouncedInput(
     filters.maxDistance || 10,
     (value) => updateFilter("maxDistance", value),
-    { debounceMs: 200 }
+    { strategy: "commit" }
   );
+
+  const commitFilterNumericHandlers = (
+    input: Pick<typeof priceMinInput, "handleChange" | "handleCommit">
+  ) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      input.handleChange(e.target.value),
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) =>
+      input.handleCommit(e.target.value),
+    onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.handleCommit(e.currentTarget.value);
+      }
+    },
+  });
+
+  const commitCurrencyAmountHandlers = (
+    input: Pick<
+      typeof priceMinInput,
+      "value" | "handleChange" | "handleCommit"
+    >
+  ) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      input.handleChange(stripToAmountDigits(e.target.value)),
+    onBlur: () => input.handleCommit(input.value),
+    onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.handleCommit(input.value);
+      }
+    },
+  });
 
   return (
     <Paper
@@ -193,10 +233,10 @@ export default function ControlsPanel({
             <Box sx={{ display: "flex", gap: 1, width: "100%", minWidth: 0 }}>
               <TextField
                 label="Min"
-                type="number"
-                value={priceMinInput.value}
-                onChange={(e) => priceMinInput.handleChange(e.target.value)}
-                onBlur={() => priceMinInput.flush()}
+                type="text"
+                inputMode="numeric"
+                value={formatThousandsFromDigits(priceMinInput.value)}
+                {...commitCurrencyAmountHandlers(priceMinInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
@@ -206,10 +246,10 @@ export default function ControlsPanel({
               />
               <TextField
                 label="Max"
-                type="number"
-                value={priceMaxInput.value}
-                onChange={(e) => priceMaxInput.handleChange(e.target.value)}
-                onBlur={() => priceMaxInput.flush()}
+                type="text"
+                inputMode="numeric"
+                value={formatThousandsFromDigits(priceMaxInput.value)}
+                {...commitCurrencyAmountHandlers(priceMaxInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
@@ -238,8 +278,7 @@ export default function ControlsPanel({
                 label="Min"
                 type="number"
                 value={sqftMinInput.value}
-                onChange={(e) => sqftMinInput.handleChange(e.target.value)}
-                onBlur={() => sqftMinInput.flush()}
+                {...commitFilterNumericHandlers(sqftMinInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
@@ -248,8 +287,7 @@ export default function ControlsPanel({
                 label="Max"
                 type="number"
                 value={sqftMaxInput.value}
-                onChange={(e) => sqftMaxInput.handleChange(e.target.value)}
-                onBlur={() => sqftMaxInput.flush()}
+                {...commitFilterNumericHandlers(sqftMaxInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
@@ -335,8 +373,7 @@ export default function ControlsPanel({
                 label="Min"
                 type="number"
                 value={yearBuiltMinInput.value}
-                onChange={(e) => yearBuiltMinInput.handleChange(e.target.value)}
-                onBlur={() => yearBuiltMinInput.flush()}
+                {...commitFilterNumericHandlers(yearBuiltMinInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
@@ -345,8 +382,7 @@ export default function ControlsPanel({
                 label="Max"
                 type="number"
                 value={yearBuiltMaxInput.value}
-                onChange={(e) => yearBuiltMaxInput.handleChange(e.target.value)}
-                onBlur={() => yearBuiltMaxInput.flush()}
+                {...commitFilterNumericHandlers(yearBuiltMaxInput)}
                 size="small"
                 fullWidth
                 sx={{ minWidth: 0 }}
