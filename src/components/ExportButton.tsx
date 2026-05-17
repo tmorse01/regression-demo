@@ -2,6 +2,7 @@ import { Button, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/materia
 import { Download, PictureAsPdf, TableChart } from "@mui/icons-material";
 import { useState } from "react";
 import type { Listing, SubjectProperty } from "../types/listing";
+import { EXPORT_CSV_FILENAME, EXPORT_PDF_FILENAME } from "../brand";
 import { exportToCSV, exportToPDF } from "../utils/export";
 import {
   medianPrice,
@@ -30,7 +31,7 @@ export default function ExportButton({
   };
 
   const handleCSVExport = () => {
-    exportToCSV(listings, "comps.csv");
+    exportToCSV(listings, EXPORT_CSV_FILENAME);
     handleClose();
   };
 
@@ -41,7 +42,7 @@ export default function ExportButton({
       medianPricePerSqft: medianPricePerSqft(listings),
       averageDistance: averageDistance(listings),
     };
-    exportToPDF(listings, subjectProperty, stats, "comps-report.pdf");
+    exportToPDF(listings, subjectProperty, stats, EXPORT_PDF_FILENAME);
     handleClose();
   };
 

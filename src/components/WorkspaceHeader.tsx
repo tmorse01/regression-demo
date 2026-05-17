@@ -11,6 +11,7 @@ import {
   DarkMode,
   LightMode,
 } from "@mui/icons-material";
+import { WORKSPACE_SECTION_LABEL } from "../brand";
 
 export type ViewMode = "analysis" | "table" | "overview";
 export type ThemeMode = "light" | "dark";
@@ -46,7 +47,7 @@ export default function WorkspaceHeader({
           color: "text.primary",
         }}
       >
-        Analysis Workspace
+        {WORKSPACE_SECTION_LABEL}
       </Typography>
       <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
         <ToggleButtonGroup

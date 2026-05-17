@@ -1,6 +1,7 @@
-# Construction Lender Regression Analysis
+# LendSight
 
-A modern, interactive web application for analyzing real estate property data with advanced regression analysis, data visualization, and comprehensive filtering capabilities. Built for construction lenders and real estate professionals to perform comparable sales analysis.
+**LendSight** is a demo web app for **regression-powered comparable analysis for lending teams**—interactive exploration of collateral and comparable listings with regression, KPIs, maps, filtering, and export.
+
 
 **🌐 Live Demo:** [https://regression-demo.netlify.app/](https://regression-demo.netlify.app/)
 
@@ -101,10 +102,11 @@ A modern, interactive web application for analyzing real estate property data wi
 
 ## 📜 Available Scripts
 
-- `pnpm dev` - Start development server with hot module replacement
-- `pnpm build` - Build production bundle (TypeScript compilation + Vite build)
-- `pnpm preview` - Preview production build locally
-- `pnpm lint` - Run ESLint to check code quality
+- `pnpm dev` / `npm run dev` - Start development server with hot module replacement
+- `pnpm build` / `npm run build` - Build production bundle (TypeScript compilation + Vite build)
+- `pnpm preview` / `npm run preview` - Preview production build locally
+- `pnpm lint` / `npm run lint` - Run ESLint to check code quality
+- `pnpm test` / `npm run test` — Run Vitest smoke tests (`src/utils/*.test.ts`)
 
 ## 📁 Project Structure
 
@@ -125,6 +127,10 @@ regression-demo/
 │   │   ├── SubjectSummary.tsx # Subject property summary
 │   │   ├── TimelineScrubber.tsx # Year range filter
 │   │   └── ...              # Additional UI components
+│   ├── brand.ts             # Product name, tagline, export filenames
+│   ├── theme/
+│   │   ├── appTheme.ts      # MUI createTheme(light|dark)
+│   │   └── glassSurfaces.ts # Shared frosted-card styles
 │   ├── data/
 │   │   └── listings.ts      # Synthetic data generation
 │   ├── hooks/               # Custom React hooks
@@ -204,9 +210,14 @@ This project uses the React Compiler (experimental) for automatic optimization. 
 - Strict type checking enabled
 - Separate configs for app and build tools (`tsconfig.app.json`, `tsconfig.node.json`)
 
-### ESLint Configuration
+### Automated tests
 
-The project uses ESLint with TypeScript support. To enable stricter type-aware rules, see the configuration examples in the original README template.
+- **Vitest** — Smoke coverage for statistical helpers (`pnpm test`)
+
+### Accessibility
+
+- MUI provides baseline semantics; **recommended follow-up:** run an axe (or Lighthouse) pass on charts, scrubber, and map controls before production.
+
 
 ## 🤝 Contributing
 

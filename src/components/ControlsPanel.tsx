@@ -9,6 +9,8 @@ import {
   Collapse,
   IconButton,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { glassCardSx } from "../theme/glassSurfaces";
 import { FilterList, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { useState } from "react";
 import type { Filters } from "../types/listing";
@@ -25,6 +27,7 @@ export default function ControlsPanel({
   onFiltersChange,
   onReset,
 }: ControlsPanelProps) {
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(true);
 
   // Helper to update a single filter field
@@ -96,13 +99,9 @@ export default function ControlsPanel({
   return (
     <Paper
       sx={{
+        ...glassCardSx(theme),
         p: 2.5,
         borderRadius: 3,
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid rgba(0, 0, 0, 0.05)",
-        boxShadow:
-          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         position: "sticky",
         top: 20,
@@ -118,10 +117,16 @@ export default function ControlsPanel({
           background: "transparent",
         },
         "&::-webkit-scrollbar-thumb": {
-          background: "rgba(0, 0, 0, 0.2)",
+          background:
+            theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.22)"
+              : "rgba(0, 0, 0, 0.2)",
           borderRadius: "4px",
           "&:hover": {
-            background: "rgba(0, 0, 0, 0.3)",
+            background:
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.32)"
+                : "rgba(0, 0, 0, 0.3)",
           },
         },
       }}

@@ -1,7 +1,17 @@
 import type { Listing } from "../types/listing";
 import jsPDF from "jspdf";
+import {
+  EXPORT_CSV_FILENAME,
+  EXPORT_PDF_FILENAME,
+  PDF_PRIMARY_HEADING,
+  PDF_SECONDARY_HEADING,
+  PRODUCT_TAGLINE,
+} from "../brand";
 
-export function exportToCSV(listings: Listing[], filename: string = "comps.csv"): void {
+export function exportToCSV(
+  listings: Listing[],
+  filename: string = EXPORT_CSV_FILENAME
+): void {
   const headers = [
     "Price",
     "Sqft",
@@ -10,6 +20,10 @@ export function exportToCSV(listings: Listing[], filename: string = "comps.csv")
     "Baths",
     "Year Built",
     "Distance (miles)",
+    "Id",
+    "Lat",
+    "Lng",
+    "Listing Year",
   ];
 
   const rows = listings.map((listing) => [
@@ -20,6 +34,10 @@ export function exportToCSV(listings: Listing[], filename: string = "comps.csv")
     listing.baths.toString(),
     listing.yearBuilt.toString(),
     listing.distanceFromSubject.toFixed(2),
+    listing.id,
+    listing.lat.toString(),
+    listing.lng.toString(),
+    listing.listingDate.toString(),
   ]);
 
   const csvContent = [
@@ -53,16 +71,24 @@ export function exportToPDF(
     medianPricePerSqft: number;
     averageDistance: number;
   },
-  filename: string = "comps-report.pdf"
+  filename: string = EXPORT_PDF_FILENAME
 ): void {
   const doc = new jsPDF();
   const margin = 10;
   let yPos = margin;
 
-  // Title
   doc.setFontSize(18);
-  doc.text("Comparable Sales Analysis", margin, yPos);
-  yPos += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text(PDF_PRIMARY_HEADING, margin, yPos);
+  yPos += 7;
+  doc.setFontSize(12);
+  doc.text(PDF_SECONDARY_HEADING, margin, yPos);
+  yPos += 6;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  const taglineLines = doc.splitTextToSize(PRODUCT_TAGLINE, 190);
+  doc.text(taglineLines, margin, yPos);
+  yPos += 4 + taglineLines.length * 4;
 
   // Subject Property
   doc.setFontSize(12);

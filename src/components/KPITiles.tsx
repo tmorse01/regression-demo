@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, Typography, Box, useTheme } from "@mui/material";
 import { Home, TrendingUp, SquareFoot, LocationOn } from "@mui/icons-material";
 import type { Listing } from "../types/listing";
+import { glassCardSx } from "../theme/glassSurfaces";
 import {
   medianPrice,
   medianPricePerSqft,
@@ -42,14 +43,10 @@ function KPITile({ label, value, icon, color, formatValue }: KPITileProps) {
   return (
     <Card
       sx={{
+        ...glassCardSx(theme),
         height: "100%",
         position: "relative",
         borderRadius: 3,
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        border: `1px solid rgba(255, 255, 255, 0.3)`,
-        boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06),
-          0 0 0 1px rgba(0, 0, 0, 0.05)`,
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         overflow: "hidden",
         "&::before": {
@@ -63,7 +60,10 @@ function KPITile({ label, value, icon, color, formatValue }: KPITileProps) {
         },
         "&:hover": {
           transform: "translateY(-2px)",
-          boxShadow: `0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05),
+          boxShadow:
+            theme.palette.mode === "dark"
+              ? `0 10px 15px -3px rgba(0, 0, 0, 0.38), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(148, 163, 184, 0.12), 0 0 20px ${color}44`
+              : `0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05),
             0 0 0 1px rgba(0, 0, 0, 0.05), 0 0 20px ${color}33`,
         },
       }}

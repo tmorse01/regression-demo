@@ -1,4 +1,5 @@
 import { Box, CircularProgress, Fade } from "@mui/material";
+import { glassCardSx } from "../theme/glassSurfaces";
 
 interface TransitionIndicatorProps {
   isPending: boolean;
@@ -14,7 +15,8 @@ export default function TransitionIndicator({
   return (
     <Fade in={isPending} timeout={200}>
       <Box
-        sx={{
+        sx={(theme) => ({
+          ...glassCardSx(theme),
           position: "fixed",
           top: 80,
           right: 24,
@@ -22,14 +24,10 @@ export default function TransitionIndicator({
           display: isPending ? "flex" : "none",
           alignItems: "center",
           gap: 1,
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(10px)",
           borderRadius: 2,
           px: 2,
           py: 1,
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-          border: "1px solid rgba(0, 0, 0, 0.05)",
-        }}
+        })}
       >
         <CircularProgress size={16} thickness={4} />
         <Box

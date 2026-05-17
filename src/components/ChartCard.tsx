@@ -1,5 +1,6 @@
 import { Paper, Typography, Box, useTheme } from "@mui/material";
 import type { ReactNode } from "react";
+import { glassCardSx } from "../theme/glassSurfaces";
 
 interface ChartCardProps {
   title: string;
@@ -18,16 +19,12 @@ export default function ChartCard({
     <Paper
       elevation={0}
       sx={{
+        ...glassCardSx(theme),
         p: 3,
         height: "100%",
         display: "flex",
         flexDirection: "column",
         borderRadius: 3,
-        background: "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid rgba(0, 0, 0, 0.05)",
-        boxShadow:
-          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         position: "relative",
         overflow: "hidden",
@@ -39,12 +36,16 @@ export default function ChartCard({
           right: 0,
           height: "1px",
           background:
-            "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent)",
+            theme.palette.mode === "dark"
+              ? "linear-gradient(90deg, transparent, rgba(226,232,240,0.35), transparent)"
+              : "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent)",
         },
         "&:hover": {
           transform: "translateY(-2px)",
           boxShadow:
-            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            theme.palette.mode === "dark"
+              ? "0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.28)"
+              : "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
         },
       }}
     >

@@ -5,6 +5,7 @@ import {
   Suspense,
   useDeferredValue,
   useEffect,
+  lazy,
 } from "react";
 import {
   Container,
@@ -13,16 +14,20 @@ import {
   Toolbar,
   Typography,
   Paper,
+  ThemeProvider,
+  CssBaseline,
+  Snackbar,
+  Alert,
 } from "@mui/material";
-import { LoadScript } from "@react-google-maps/api";
+import { LoadScriptNext } from "@react-google-maps/api";
 import SubjectPropertyForm from "./components/SubjectPropertyForm";
 import SubjectSummary from "./components/SubjectSummary";
 import MapVisualization from "./components/MapVisualization";
 import ControlsPanel from "./components/ControlsPanel";
 import KPITiles from "./components/KPITiles";
-import ChartsGrid from "./components/ChartsGrid";
-import ListingsTable from "./components/ListingsTable";
 import ExportButton from "./components/ExportButton";
+import ImportButton from "./components/ImportButton";
+import MockDataControl from "./components/MockDataControl";
 import Loader from "./components/Loader";
 import FilterPresets from "./components/FilterPresets";
 import WorkspaceHeader from "./components/WorkspaceHeader";
@@ -32,8 +37,20 @@ import EmptyState from "./components/EmptyState";
 import TimelineScrubber from "./components/TimelineScrubber";
 import TransitionIndicator from "./components/TransitionIndicator";
 import { useDebouncedFilters } from "./hooks/useDebouncedFilters";
-import type { SubjectProperty, Filters } from "./types/listing";
-import { generateListings, getDefaultSubjectProperty } from "./data/listings";
+import type { SubjectProperty, Filters, Listing } from "./types/listing";
+import {
+  generateListings,
+  getDefaultSubjectProperty,
+  recomputeListingDistances,
+  type GenerateListingsOptions,
+} from "./data/listings";
+import type { ImportParseResult } from "./utils/importListings";
+import { PRODUCT_NAME, PRODUCT_PAGE_TITLE } from "./brand";
+import { createAppTheme } from "./theme/appTheme";
+import { glassCardSx } from "./theme/glassSurfaces";
+
+const ChartsGrid = lazy(() => import("./components/ChartsGrid"));
+const ListingsTable = lazy(() => import("./components/ListingsTable"));
 
 const mapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 const placesApiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || mapsApiKey;
@@ -48,6 +65,11 @@ const defaultFilters: Filters = {
   yearBuiltMax: null,
   maxDistance: null,
 };
+
+/** Stable identity for @react-google-maps/api; must not be recreated each render. */
+const MAP_LIBRARIES = ["places"] as ("places" | "drawing" | "geometry" | "visualization")[];
+
+type ListingsSource = "synthetic" | "imported";
 
 function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -66,13 +88,31 @@ function App() {
   ]);
   const [isChartPending, startChartTransition] = useTransition();
 
+  const [listingsSource, setListingsSource] =
+    useState<ListingsSource>("synthetic");
+  const [importedListings, setImportedListings] = useState<Listing[] | null>(
+    null
+  );
+  const [syntheticCount, setSyntheticCount] = useState(150);
+  const [syntheticOptions, setSyntheticOptions] =
+    useState<GenerateListingsOptions>({});
+
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "warning" | "info";
+  }>({ open: false, message: "", severity: "info" });
+
+  const muiPaletteMode = themeMode === "dark" ? "dark" : "light";
+  const theme = useMemo(
+    () => createAppTheme(muiPaletteMode),
+    [muiPaletteMode]
+  );
+
   // Simulate initial data generation with a delay
   useEffect(() => {
     const simulateDataGeneration = async () => {
-      // Simulate generating 150 listings with a delay
-      // Progress bar will fill to ~95% during this time
       await new Promise((resolve) => setTimeout(resolve, 2700));
-      // Small delay to let progress bar complete to 100%
       await new Promise((resolve) => setTimeout(resolve, 300));
       setIsInitialLoading(false);
     };
@@ -80,38 +120,109 @@ function App() {
     simulateDataGeneration();
   }, []);
 
-  // Debounced filters with optimistic updates
+  useEffect(() => {
+    document.title = PRODUCT_PAGE_TITLE;
+  }, []);
+
   const {
     filters,
     updateFilters,
     isPending: isFiltersPending,
   } = useDebouncedFilters(actualFilters, {
-    debounceMs: 150, // Reduced debounce for faster feel
+    debounceMs: 150,
     onFiltersChange: setActualFilters,
   });
 
-  // Date range is managed locally in TimelineScrubber component
-  // Only update parent state via debounced callback from the component
   const handleDateRangeChange = (range: [number, number]) => {
     setActualDateRange(range);
   };
 
-  const allListings = useMemo(() => {
-    return generateListings(150, subjectProperty);
-  }, [subjectProperty]);
+  const importedWithDistance = useMemo(() => {
+    if (listingsSource !== "imported" || !importedListings?.length) {
+      return null;
+    }
+    return recomputeListingDistances(importedListings, subjectProperty);
+  }, [listingsSource, importedListings, subjectProperty]);
 
-  // Defer heavy filtering computation - this allows inputs to feel instant
-  // while the expensive filtering happens in the background
+  const allListings = useMemo(() => {
+    if (listingsSource === "imported" && importedWithDistance) {
+      return importedWithDistance;
+    }
+    return generateListings(syntheticCount, subjectProperty, syntheticOptions);
+  }, [
+    listingsSource,
+    importedWithDistance,
+    syntheticCount,
+    subjectProperty,
+    syntheticOptions,
+  ]);
+
+  const handleImportComplete = (
+    result: ImportParseResult,
+    filename: string
+  ) => {
+    if (!result.listings.length) {
+      setSnackbar({
+        open: true,
+        message: result.errors.join(" ") || "Import failed",
+        severity: "error",
+      });
+      return;
+    }
+
+    setListingsSource("imported");
+    setImportedListings(result.listings);
+
+    const years = result.listings.map((l) => l.listingDate);
+    if (years.length) {
+      setActualDateRange([Math.min(...years), Math.max(...years)]);
+    }
+
+    let message = `Imported ${result.listings.length} listing(s) from ${filename}.`;
+    if (result.warnings.length) {
+      message += ` ${result.warnings.length} warning(s) — check the console or re-export for details.`;
+    }
+    if (result.errors.length) {
+      message += ` ${result.errors.join(" ")}`;
+    }
+
+    if (result.warnings.length && !result.errors.length) {
+      console.warn("Import warnings:", result.warnings);
+    }
+
+    setSnackbar({
+      open: true,
+      message,
+      severity:
+        result.warnings.length || result.errors.length ? "warning" : "success",
+    });
+  };
+
+  const handleMockApply = ({
+    count,
+    options,
+  }: {
+    count: number;
+    options: GenerateListingsOptions;
+  }) => {
+    setListingsSource("synthetic");
+    setImportedListings(null);
+    setSyntheticCount(count);
+    setSyntheticOptions(options);
+    setSnackbar({
+      open: true,
+      message: `Generated ${count} synthetic comparables.`,
+      severity: "success",
+    });
+  };
+
   const deferredFilters = useDeferredValue(filters);
   const deferredDateRange = useDeferredValue(actualDateRange);
   const isDeferredPending =
     filters !== deferredFilters || actualDateRange !== deferredDateRange;
 
-  // Heavy computation - only runs when deferred values change
-  // This is automatically low-priority thanks to useDeferredValue
   const filteredListings = useMemo(() => {
     const filtered = allListings.filter((listing) => {
-      // Date range filter
       const listingDate = listing.listingDate || listing.yearBuilt;
       if (
         listingDate < deferredDateRange[0] ||
@@ -120,7 +231,6 @@ function App() {
         return false;
       }
 
-      // Other filters
       if (
         deferredFilters.priceMin !== null &&
         listing.price < deferredFilters.priceMin
@@ -199,181 +309,162 @@ function App() {
     });
   };
 
-  const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = [
-    "places",
-  ];
-
   const showEmptyState = filteredListings.length === 0;
   const isAnyPending = isFiltersPending || isChartPending || isDeferredPending;
 
-  // Show loader during initial data generation
-  if (isInitialLoading) {
-    return <Loader />;
-  }
-
   return (
-    <Box
-      sx={{
-        flexGrow: 1,
-        minHeight: "100vh",
-        backgroundColor: themeMode === "dark" ? "#0f172a" : "#f1f5f9",
-        transition: "background-color 0.3s ease",
-      }}
-    >
-      <TransitionIndicator isPending={isAnyPending} />
-      {mapsApiKey ? (
-        <LoadScript
-          googleMapsApiKey={mapsApiKey}
-          libraries={libraries}
-          loadingElement={<Loader />}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {isInitialLoading ? (
+        <Loader />
+      ) : (
+        <Box
+          sx={{
+            flexGrow: 1,
+            minHeight: "100vh",
+            bgcolor: "background.default",
+            transition: "background-color 0.3s ease",
+          }}
         >
-          <AppBar position="static" sx={{ mb: 0 }}>
-            <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
-              <Typography
-                variant="h5"
-                component="div"
-                sx={{
-                  flexGrow: 1,
-                  fontWeight: 600,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Construction Lender Regression Analysis
-              </Typography>
-              <ExportButton
-                listings={filteredListings}
-                subjectProperty={subjectProperty}
-              />
-            </Toolbar>
-          </AppBar>
-
-          <Box
-            sx={{
-              display: "flex",
-              minHeight: "calc(100vh - 64px)",
-              backgroundColor: themeMode === "dark" ? "#0f172a" : "#f1f5f9",
-            }}
-          >
-            {/* Left Filter Rail */}
-            <Box
-              sx={{
-                width: { xs: "100%", md: "320px" },
-                flexShrink: 0,
-                backgroundColor: themeMode === "dark" ? "#1e293b" : "#e2e8f0",
-                borderRight: "1px solid",
-                borderColor: "divider",
-                p: 2,
-                overflowY: "auto",
-                position: { xs: "relative", md: "sticky" },
-                top: 0,
-                height: { xs: "auto", md: "100vh" },
-              }}
+          <TransitionIndicator isPending={isAnyPending} />
+          {mapsApiKey ? (
+            <LoadScriptNext
+              googleMapsApiKey={mapsApiKey}
+              libraries={MAP_LIBRARIES}
+              loadingElement={<Loader />}
             >
-              <SubjectPropertyForm
-                subjectProperty={subjectProperty}
-                onSubjectPropertyChange={setSubjectProperty}
-                apiKey={placesApiKey}
-              />
-              <Box sx={{ mt: 2 }}>
-                <ControlsPanel
-                  filters={filters}
-                  onFiltersChange={updateFilters}
-                  onReset={handleResetFilters}
-                />
-              </Box>
-            </Box>
-
-            {/* Right Analysis Workspace */}
-            <Box
-              sx={{
-                flex: 1,
-                overflowY: "auto",
-                p: 3,
-                backgroundColor: themeMode === "dark" ? "#0f172a" : "#f1f5f9",
-              }}
-            >
-              <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
-                {/* Filter Presets */}
-                <FilterPresets
-                  activePreset={activePreset}
-                  onPresetSelect={handlePresetSelect}
-                  onReset={handleResetFilters}
-                />
-
-                {/* Subject Summary Card */}
-                <Paper
-                  sx={{
-                    p: 2.5,
-                    mb: 3,
-                    borderRadius: 3,
-                    background: "rgba(255, 255, 255, 0.95)",
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(0, 0, 0, 0.05)",
-                    boxShadow:
-                      "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                  }}
-                >
-                  <SubjectSummary
-                    subjectProperty={subjectProperty}
-                    compCount={filteredListings.length}
-                  />
-                </Paper>
-
-                {/* KPI Tiles */}
-                {!showEmptyState && <KPITiles listings={filteredListings} />}
-
-                {/* Workspace Header */}
-                <WorkspaceHeader
-                  viewMode={viewMode}
-                  themeMode={themeMode}
-                  onViewModeChange={setViewMode}
-                  onThemeModeChange={setThemeMode}
-                />
-
-                {/* Timeline Scrubber */}
-                {!showEmptyState && (
-                  <TimelineScrubber
-                    listings={filteredListings}
-                    initialDateRange={actualDateRange}
-                    onDateRangeChange={handleDateRangeChange}
-                  />
-                )}
-
-                {/* Empty State */}
-                {showEmptyState ? (
-                  <EmptyState onResetFilters={handleResetFilters} />
-                ) : (
-                  <>
-                    {/* Insight Callout */}
-                    <InsightCallout
+              <>
+              <AppBar position="static" sx={{ mb: 0 }}>
+                <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    sx={{
+                      flexGrow: 1,
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      color: "common.white",
+                    }}
+                  >
+                    {PRODUCT_NAME}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ImportButton onImportComplete={handleImportComplete} />
+                    <MockDataControl
+                      initialCount={syntheticCount}
+                      initialOptions={syntheticOptions}
+                      onApply={handleMockApply}
+                    />
+                    <ExportButton
                       listings={filteredListings}
                       subjectProperty={subjectProperty}
                     />
+                  </Box>
+                </Toolbar>
+              </AppBar>
 
-                    {/* Charts or Table based on view mode */}
-                    {viewMode === "table" ? (
-                      <Box sx={{ mt: 3 }}>
-                        <Suspense fallback={<Loader />}>
-                          <ListingsTable
-                            listings={filteredListings}
-                            highlightedListingId={highlightedListingId}
-                            onListingHover={setHighlightedListingId}
-                          />
-                        </Suspense>
-                      </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  minHeight: "calc(100vh - 64px)",
+                  bgcolor: "background.default",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: { xs: "100%", md: "320px" },
+                    flexShrink: 0,
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark" ? "#1e293b" : "#e2e8f0",
+                    borderRight: "1px solid",
+                    borderColor: "divider",
+                    p: 2,
+                    overflowY: "auto",
+                    position: { xs: "relative", md: "sticky" },
+                    top: 0,
+                    height: { xs: "auto", md: "100vh" },
+                  }}
+                >
+                  <SubjectPropertyForm
+                    subjectProperty={subjectProperty}
+                    onSubjectPropertyChange={setSubjectProperty}
+                    apiKey={placesApiKey}
+                  />
+                  <Box sx={{ mt: 2 }}>
+                    <ControlsPanel
+                      filters={filters}
+                      onFiltersChange={updateFilters}
+                      onReset={handleResetFilters}
+                    />
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    flex: 1,
+                    overflowY: "auto",
+                    p: 3,
+                    bgcolor: "background.default",
+                  }}
+                >
+                  <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+                    <FilterPresets
+                      activePreset={activePreset}
+                      onPresetSelect={handlePresetSelect}
+                      onReset={handleResetFilters}
+                    />
+
+                    <Paper
+                      sx={(t) => ({
+                        p: 2.5,
+                        mb: 3,
+                        borderRadius: 3,
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        ...glassCardSx(t),
+                      })}
+                    >
+                      <SubjectSummary
+                        subjectProperty={subjectProperty}
+                        compCount={filteredListings.length}
+                      />
+                    </Paper>
+
+                    {!showEmptyState && <KPITiles listings={filteredListings} />}
+
+                    <WorkspaceHeader
+                      viewMode={viewMode}
+                      themeMode={themeMode}
+                      onViewModeChange={setViewMode}
+                      onThemeModeChange={setThemeMode}
+                    />
+
+                    {!showEmptyState && (
+                      <TimelineScrubber
+                        listings={filteredListings}
+                        initialDateRange={actualDateRange}
+                        onDateRangeChange={handleDateRangeChange}
+                      />
+                    )}
+
+                    {showEmptyState ? (
+                      <EmptyState onResetFilters={handleResetFilters} />
                     ) : (
-                      <Box sx={{ mt: 3 }}>
-                        <Suspense fallback={<Loader />}>
-                          <ChartsGrid
-                            listings={filteredListings}
-                            subjectProperty={subjectProperty}
-                            highlightedListingId={highlightedListingId}
-                            onListingHover={setHighlightedListingId}
-                          />
-                        </Suspense>
-                        {viewMode === "overview" && (
+                      <>
+                        <InsightCallout
+                          listings={filteredListings}
+                          subjectProperty={subjectProperty}
+                        />
+
+                        {viewMode === "table" ? (
                           <Box sx={{ mt: 3 }}>
-                            <Suspense fallback={<Loader />}>
+                            <Suspense fallback={<Loader variant="embedded" />}>
                               <ListingsTable
                                 listings={filteredListings}
                                 highlightedListingId={highlightedListingId}
@@ -381,53 +472,91 @@ function App() {
                               />
                             </Suspense>
                           </Box>
+                        ) : (
+                          <Box sx={{ mt: 3 }}>
+                            <Suspense fallback={<Loader variant="embedded" />}>
+                              <ChartsGrid
+                                listings={filteredListings}
+                                subjectProperty={subjectProperty}
+                                highlightedListingId={highlightedListingId}
+                                onListingHover={setHighlightedListingId}
+                              />
+                            </Suspense>
+                            {viewMode === "overview" && (
+                              <Box sx={{ mt: 3 }}>
+                                <Suspense fallback={<Loader variant="embedded" />}>
+                                  <ListingsTable
+                                    listings={filteredListings}
+                                    highlightedListingId={highlightedListingId}
+                                    onListingHover={setHighlightedListingId}
+                                  />
+                                </Suspense>
+                              </Box>
+                            )}
+                          </Box>
                         )}
-                      </Box>
-                    )}
 
-                    {/* Map Visualization */}
-                    {viewMode !== "table" && (
-                      <Box sx={{ mt: 3 }}>
-                        <MapVisualization
-                          subjectProperty={subjectProperty}
-                          listings={filteredListings}
-                          apiKey={mapsApiKey}
-                        />
-                      </Box>
+                        {viewMode !== "table" && (
+                          <Box sx={{ mt: 3 }}>
+                            <MapVisualization
+                              subjectProperty={subjectProperty}
+                              listings={filteredListings}
+                              apiKey={mapsApiKey}
+                            />
+                          </Box>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
+                  </Container>
+                </Box>
+              </Box>
+              </>
+            </LoadScriptNext>
+          ) : (
+            <>
+              <AppBar position="static" sx={{ mb: 4 }}>
+                <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    sx={{
+                      flexGrow: 1,
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      color: "common.white",
+                    }}
+                  >
+                    {PRODUCT_NAME}
+                  </Typography>
+                </Toolbar>
+              </AppBar>
+              <Container maxWidth="xl">
+                <Typography color="error" sx={{ p: 2 }}>
+                  Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.
+                  Optionally, set VITE_GOOGLE_PLACES_API_KEY for a separate
+                  Places API key.
+                </Typography>
               </Container>
-            </Box>
-          </Box>
-        </LoadScript>
-      ) : (
-        <>
-          <AppBar position="static" sx={{ mb: 4 }}>
-            <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
-              <Typography
-                variant="h5"
-                component="div"
-                sx={{
-                  flexGrow: 1,
-                  fontWeight: 600,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Construction Lender Regression Analysis
-              </Typography>
-            </Toolbar>
-          </AppBar>
-          <Container maxWidth="xl">
-            <Typography color="error" sx={{ p: 2 }}>
-              Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.
-              Optionally, set VITE_GOOGLE_PLACES_API_KEY for a separate Places
-              API key.
-            </Typography>
-          </Container>
-        </>
+            </>
+          )}
+        </Box>
       )}
-    </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={8000}
+        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </ThemeProvider>
   );
 }
 

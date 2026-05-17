@@ -290,8 +290,10 @@ export default function ChartsGrid({
                   dataKey="price"
                   fill={group.color}
                   fillOpacity={0.6}
-                  onMouseEnter={(data: { id?: string }) => {
-                    const entry = scatterData.find((d) => d.id === data?.id);
+                  onMouseEnter={(dot: unknown) => {
+                    const d = dot as { id?: string; payload?: { id?: string } };
+                    const lid = d.payload?.id ?? d.id;
+                    const entry = scatterData.find((p) => p.id === lid);
                     if (entry?.id && onListingHover) {
                       setHoveredPoint(entry.id);
                       onListingHover(entry.id);
@@ -451,8 +453,8 @@ export default function ChartsGrid({
               />
               <Tooltip
                 content={<CustomTooltip />}
-                labelFormatter={(value) => `$${Math.round(value)}`}
-                formatter={(value: number) => value}
+                labelFormatter={(value) => `$${Math.round(Number(value))}`}
+                formatter={(value) => [`${value ?? ""}`, "Count"]}
               />
               <Bar
                 dataKey="count"

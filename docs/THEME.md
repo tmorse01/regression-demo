@@ -1,16 +1,18 @@
-# Theme Documentation
+# Theme documentation – LendSight
 
-This document describes the design system and theme configuration for the Construction Lender Regression Analysis application.
+This document describes the design system and theme configuration for **LendSight** (comparable and regression workspace for lending teams).
 
 ## Overview
 
 The application uses a modern slate/blue color scheme with a clean, professional aesthetic. The theme is built on Material-UI (MUI) and follows a consistent design language throughout all components.
 
+**Runtime palette:** [`src/theme/appTheme.ts`](../src/theme/appTheme.ts) creates the active theme with `palette.mode` set to **`light` or `dark`** from the workspace toggle in [`src/App.tsx`](../src/App.tsx). Frosted “glass” surfaces use [`src/theme/glassSurfaces.ts`](../src/theme/glassSurfaces.ts) so cards read well in both modes.
+
 ## Color Palette
 
 ### Primary Colors
 
-The primary color palette uses slate blue-gray tones:
+The primary color palette uses slate blue-gray tones.
 
 - **Primary Main**: `#1e293b` (slate-800)
 
@@ -23,6 +25,8 @@ The primary color palette uses slate blue-gray tones:
   - Light variant: `#60a5fa` (blue-400)
   - Dark variant: `#2563eb` (blue-600)
 
+When **dark mode** is selected, [`appTheme.ts`](../src/theme/appTheme.ts) uses `primary.main: #cbd5e1` so controls stay legible on dark surfaces while the App Bar keeps the same dark slate gradient styling.
+
 ### Background Colors
 
 - **Default Background**: `#f8fafc` (slate-50)
@@ -34,7 +38,7 @@ The primary color palette uses slate blue-gray tones:
 - **Sidebar Background** (Light Mode): `#e2e8f0` (slate-200)
 - **Sidebar Background** (Dark Mode): `#1e293b` (slate-800)
 
-- **Workspace Background** (Light Mode): `#f1f5f9` (slate-100)
+- **Workspace Background** (Light Mode): `#f8fafc` (`palette.background.default` in light theme)
 - **Workspace Background** (Dark Mode): `#0f172a` (slate-900)
 
 ### Semantic Colors
